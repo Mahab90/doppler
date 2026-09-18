@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Liste des fiches</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<div class="layout">
+    <nav class="sidebar">
+        <div class="sidebar-logo">Echo<span>Cardio</span></div>
+        <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Tableau de bord</a>
+        <a href="liste.html" class="nav-item active"><i class="fa-solid fa-folder-open"></i> Liste des fiches</a>
+        <a href="patients.html" class="nav-item"><i class="fa-solid fa-user-injured"></i> Patients</a>
+        <a href="fiche.html" class="nav-item"><i class="fa-solid fa-file-medical"></i> Nouvelle fiche</a>
+        <a href="users.html" class="nav-item"><i class="fa-solid fa-users"></i> Utilisateurs</a>
+    </nav>
+
+    <main class="main">
+        <div class="page-header">
+            <h1>Fiches d'échocardiographie</h1>
+            <a href="fiche.html" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nouvelle fiche</a>
+        </div>
+
+        <!-- Filtres -->
+        <div class="card card--section" style="margin-bottom:20px">
+            <div class="card-title">Recherche instantanée</div>
+            <div class="search-bar">
+                <div class="form-group" style="flex:3;min-width:280px">
+                    <label class="form-label">Recherche par mot-clé</label>
+                    <input type="text" id="f-query" class="form-control" placeholder="Tapez un nom, prénom, N° dossier, téléphone, conclusion…">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date début</label>
+                    <input type="date" id="f-date-debut" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date fin</label>
+                    <input type="date" id="f-date-fin" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sexe</label>
+                    <select id="f-sexe" class="form-control">
+                        <option value="">Tous</option>
+                        <option value="M">Masculin</option>
+                        <option value="F">Féminin</option>
+                    </select>
+                </div>
+                <button class="btn btn-ghost" id="btn-reset">Réinitialiser</button>
+            </div>
+        </div>
+
+        <!-- Résultats -->
+        <div class="card card--section">
+            <div class="card-header-row">
+                <span class="card-title">Résultats <span id="result-count" class="text-muted"></span></span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Patient</th>
+                            <th>N° dossier</th>
+                            <th>Sexe</th>
+                            <th>Date examen</th>
+                            <th>FE</th>
+                            <th>Conclusion</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="fiches-table">
+                        <tr><td colspan="7" class="table-empty">Chargement…</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="pagination" class="pagination"></div>
+        </div>
+    </main>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+if (!requireLogin()) { /* redirect */ }
+
+if (new URLSearchParams(window.location.search).get('saved') === '1') {
+    toast('Fiche enregistrée en base de données', 'success');
+    history.replaceState(null, '', 'liste.html');
+}
+
+let currentPage = 1;
+let searchMode = false;
+
+function loadList(page = 1) {
+    searchMode = false;
+    currentPage = page;
+    $.get(API + '/fiches.php', { page })
+        .done(function(r) {
+            renderTable(r?.data || []);
+            renderPagination(r?.total || 0, page);
+            $('#result-count').text('(' + (r?.total || 0) + ' fiche(s))');
+        })
+        .fail(function(xhr) {
+            $('#fiches-table').html('<tr><td colspan="7" class="table-empty">' + escHtml(apiErrorMessage(xhr, 'Erreur de chargement')) + '</td></tr>');
+            toast(apiErrorMessage(xhr, 'Impossible de charger les fiches'), 'error');
+        });
+}
+
+let searchTimer = null;
+
+function doSearch() {
+    const q = $('#f-query').val().trim();
+    const date_debut = $('#f-date-debut').val();
+    const date_fin = $('#f-date-fin').val();
+    const sexe = $('#f-sexe').val();
+
+    if (!q && !date_debut && !date_fin && !sexe) {
+        loadList(1);
+        return;
+    }
+
+    searchMode = true;
+    const params = { q, date_debut, date_fin, sexe };
+    $.get(API + '/search.php', params)
+        .done(function(data) {
+            renderTable(Array.isArray(data) ? data : []);
+            $('#result-count').text('(' + (Array.isArray(data) ? data.length : 0) + ' résultat(s))');
+            $('#pagination').empty();
+        })
+        .fail(function(xhr) {
+            toast(apiErrorMessage(xhr, 'Erreur de recherche'), 'error');
+        });
+}
+
+function triggerInstantSearch() {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(doSearch, 250);
+}
+
+function renderTable(data) {
+    if (!Array.isArray(data) || !data.length) {
+        $('#fiches-table').html('<tr><td colspan="7" class="table-empty">Aucune fiche trouvée</td></tr>');
+        return;
+    }
+    const canUpdate = canUser('update');
+    const canDelete = canUser('delete');
+    const rows = data.map(f => `
+        <tr>
+            <td><strong>${escHtml(f.nom)} ${escHtml(f.prenom)}</strong></td>
+            <td>${f.num_dossier ? escHtml(f.num_dossier) : '<span class="text-muted">—</span>'}</td>
+            <td>${f.sexe === 'M' ? '♂ M' : f.sexe === 'F' ? '♀ F' : '—'}</td>
+            <td>${fmtDate(f.date_examen)}</td>
+            <td>${badgeFE(f.fe)}</td>
+            <td class="cell-truncate">${escHtml(f.conclusion || '—')}</td>
+            <td>
+                <div class="action-group">
+                    <a href="detail.html?id=${f.id}" class="btn btn-ghost btn-sm">Voir</a>
+                    ${canUpdate ? `<a href="fiche.html?id=${f.id}" class="btn btn-ghost btn-sm">Modifier</a>` : ''}
+                    ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="deleteFiche(${f.id})">Supprimer</button>` : ''}
+                </div>
+            </td>
+        </tr>`).join('');
+    $('#fiches-table').html(rows);
+}
+
+function renderPagination(total, page) {
+    const pages = Math.ceil(total / 15);
+    if (pages <= 1) { $('#pagination').empty(); return; }
+    let html = '';
+    for (let i = 1; i <= pages; i++) {
+        html += `<button class="btn ${i === page ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="loadList(${i})">${i}</button>`;
+    }
+    $('#pagination').html(html);
+}
+
+function deleteFiche(id) {
+    if (!canUser('delete')) {
+        toast('Accès refusé pour la suppression', 'error');
+        return;
+    }
+    confirm('Supprimer définitivement cette fiche ?', function() {
+        $.ajax({
+            url: API + '/fiches.php?id=' + id,
+            method: 'DELETE',
+            contentType: 'application/json',
+            data: JSON.stringify(getActorPayload()),
+            success: function() {
+                toast('Fiche supprimée', 'success');
+                searchMode ? doSearch() : loadList(currentPage);
+            },
+            error: function(xhr) {
+                toast(apiErrorMessage(xhr, 'Erreur lors de la suppression'), 'error');
+            }
+        });
+    });
+}
+
+$('#f-query, #f-date-debut, #f-date-fin, #f-sexe').on('input change', triggerInstantSearch);
+$('#btn-reset').on('click', function() {
+    $('input[type=text], input[type=date], select').val('');
+    loadList(1);
+});
+
+loadList(1);
+</script>
+</body>
+</html>

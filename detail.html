@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiche echo Doppler cardiaque</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body class="report-body">
+<div class="report-actions no-print">
+    <a href="liste.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-arrow-left"></i> Retour</a>
+    <a href="users.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-users"></i> Utilisateurs</a>
+    <button class="btn btn-ghost btn-sm" onclick="window.print()"><i class="fa-solid fa-print"></i> Imprimer</button>
+    <button class="btn btn-ghost btn-sm" onclick="downloadPDF()"><i class="fa-solid fa-file-pdf"></i> Télécharger PDF</button>
+    <a href="#" class="btn btn-ghost btn-sm" id="edit-link"><i class="fa-solid fa-pen-to-square"></i> Modifier</a>
+    <button class="btn btn-danger btn-sm" id="btn-delete"><i class="fa-solid fa-trash"></i> Supprimer</button>
+</div>
+
+<main class="paper-sheet" id="report-sheet">
+    <div class="report-loading">Chargement...</div>
+</main>
+
+<div class="modal-overlay" id="delete-modal" style="display:none">
+    <div class="modal">
+        <div class="modal-title">Confirmer la suppression</div>
+        <p class="text-muted">Cette action est irreversible.</p>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" id="cancel-delete">Annuler</button>
+            <button class="btn btn-danger" id="confirm-delete">Supprimer</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+if (!requireLogin()) { /* redirect */ }
+
+if (!canUser('delete')) {
+    $('#btn-delete').hide();
+}
+if (!canUser('update')) {
+    $('#edit-link').hide();
+}
+
+const urlParams = new URLSearchParams(window.location.search);
+const ficheId = urlParams.get('id');
+
+if (!ficheId) {
+    document.body.innerHTML = '<div class="error-page">Aucun identifiant. <a href="liste.html">Retour</a></div>';
+}
+
+$('#edit-link').attr('href', 'fiche.html?id=' + ficheId);
+
+function empty(v) {
+    return v === null || v === undefined || v === '';
+}
+
+function esc(v) {
+    return String(v ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function clean(v, fallback = '') {
+    return empty(v) ? fallback : esc(v);
+}
+
+function cleanWithUnit(v, unit) {
+    return empty(v) ? '' : esc(v) + unit;
+}
+
+function nl(v) {
+    return clean(v).replace(/\n/g, '<br>');
+}
+
+function yesNo(value, yesText, noText) {
+    return value ? yesText : noText;
+}
+
+function doctorName(d) {
+    if (!empty(d.echographiste)) return d.echographiste;
+    if (!empty(d.medecin_prenom) || !empty(d.medecin_nom)) {
+        return 'Dr ' + [d.medecin_prenom, d.medecin_nom].filter(Boolean).join(' ');
+    }
+    return '';
+}
+
+function line(label, value) {
+    if (empty(value)) return '';
+    return `<div><strong>${label}</strong> ${esc(value)}</div>`;
+}
+
+function bullet(value) {
+    if (empty(value)) return '';
+    return `<li>${nl(value)}</li>`;
+}
+
+function formatOg(d) {
+    if (empty(d.og_obs) && empty(d.s_og)) return '';
+    let txt = 'OG : ';
+    if (!empty(d.og_obs)) txt += d.og_obs;
+    if (!empty(d.s_og)) txt += (empty(d.og_obs) ? '' : ' ') + `(S OG = ${d.s_og} cm²)`;
+    return txt;
+}
+
+function formatOd(d) {
+    if (empty(d.od_obs) && empty(d.s_od) && empty(d.taps)) return '';
+    let txt = 'OD : ';
+    if (!empty(d.od_obs)) txt += d.od_obs;
+    if (!empty(d.s_od)) txt += (empty(d.od_obs) ? '' : ' ') + `(S OD = ${d.s_od} cm²)`;
+    if (!empty(d.taps)) txt += ' ; TAPS = ' + d.taps + ' mm';
+    return txt;
+}
+
+function formatVci(d) {
+    if (empty(d.vci_obs) && empty(d.vci_diametre)) return '';
+    let txt = 'VCI : ';
+    if (!empty(d.vci_obs)) txt += d.vci_obs;
+    if (!empty(d.vci_diametre)) txt += (empty(d.vci_obs) ? '' : ' ') + `à (${d.vci_diametre} mm)`;
+    return txt;
+}
+
+function formatDopplerTricuspide(d) {
+    let parts = [];
+    if (!empty(d.doppler_tricuspide)) parts.push(d.doppler_tricuspide);
+    if (!empty(d.doppler_tricuspide_vmax)) parts.push(`VMAX=${d.doppler_tricuspide_vmax} m/s`);
+    if (!empty(d.paps)) parts.push(`PAPS=${d.paps} mmHg`);
+    if (!parts.length) return '';
+    return 'Tricuspide : ' + parts.join(' ; ');
+}
+
+function formatDopplerPulmonaire(d) {
+    let parts = [];
+    if (!empty(d.doppler_pulmonaire)) parts.push(d.doppler_pulmonaire);
+    if (!empty(d.doppler_pulmonaire_vmax)) parts.push(`VMAX=${d.doppler_pulmonaire_vmax} cm/s`);
+    if (!parts.length) return '';
+    return 'Pulmonaire : ' + parts.join(' ; ');
+}
+
+function formatDopplerAortique(d) {
+    let parts = [];
+    if (!empty(d.doppler_aortique)) parts.push(d.doppler_aortique);
+    if (!empty(d.doppler_aortique_vmax)) parts.push(`VMAX=${d.doppler_aortique_vmax} m/s`);
+    if (!parts.length) return '';
+    return 'Aorte : ' + parts.join(' ; ');
+}
+
+function downloadPDF() {
+    const element = document.getElementById('report-sheet');
+    const filename = (document.title || 'Echo_Doppler_Cardiaque').replace(/[^a-zA-Z0-9_\-]/g, '_') + '.pdf';
+    const opt = {
+        margin: [10, 10, 10, 10],
+        filename: filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+}
+
+function conclusionItems(d) {
+    if (!empty(d.conclusion)) {
+        return nl(d.conclusion)
+            .split('<br>')
+            .filter(Boolean)
+            .map(item => `<li>${item.replace(/^-+\s*/, '')}</li>`)
+            .join('');
+    }
+
+    return [
+        d.vg_obs ? `VG ${esc(d.vg_obs).toLowerCase()}` : '',
+        d.fe ? `Bonne fonction systolique : FEVG ${esc(d.fe)}%` : '',
+        d.vci_obs ? `VCI : ${esc(d.vci_obs)}` : '',
+        d.pericarde ? esc(d.pericarde) : ''
+    ].filter(Boolean).map(item => `<li>${item}</li>`).join('');
+}
+
+function renderReport(d) {
+    const fullName = [d.patient_nom, d.patient_prenom].filter(Boolean).join(' ');
+    const examDate = fmtDate(d.date_examen);
+    const echoDoctor = doctorName(d);
+    const optionalAdmin = [
+        line('N dossier :', d.num_dossier),
+        line('Telephone :', d.telephone)
+    ].join('');
+
+    document.title = fullName + ' - Echo Doppler cardiaque';
+
+    const fenetreStr = [d.fenetre || 'Bonne', d.fenetre_mode].filter(Boolean).join(' ');
+
+    $('#report-sheet').html(`
+        <header class="paper-head">
+            <div class="hospital-stamp" aria-hidden="true">
+    <img src="assets/img/logo.jpeg" alt="" class="stamp-logo">
+</div>
+            <div class="paper-institution">
+                <div>DIRECTION GENERALE DE LA SANTE PUBLIQUE</div>
+                <div>MATERNITE ISSAKA GAZOBY / E.P.A / NIAMEY</div>
+                <div class="exam-date">DATE DE L'EXAMEN : ${clean(examDate)}</div>
+            </div>
+            <h1>ECHO DOPPLER CARDIAQUE</h1>
+        </header>
+
+        <section class="paper-identite">
+            <div class="identity-grid">
+                <div class="identity-item identity-item--full"><strong>Nom et prénom :</strong> ${clean(fullName)}</div>
+                <div class="identity-item"><strong>Âge :</strong> ${cleanWithUnit(d.age, ' ans')}</div>
+                <div class="identity-item"><strong>Sexe :</strong> ${clean(d.sexe)}</div>
+                <div class="identity-item"><strong>Externe :</strong> ${yesNo(!d.service, 'OUI', 'NON')}</div>
+                <div class="identity-item"><strong>Hospitalisé :</strong> ${yesNo(d.service, 'OUI', 'NON')}</div>
+                ${!empty(d.service) ? `<div class="identity-item"><strong>Service :</strong> ${esc(d.service)}</div>` : ''}
+                <div class="identity-item"><strong>Envoyé par :</strong> ${clean(d.medecin_demandeur)}</div>
+                <div class="identity-item"><strong>Échographiste :</strong> ${clean(echoDoctor)}</div>
+                <div class="identity-item"><strong>N° dossier :</strong> ${clean(d.num_dossier)}</div>
+                <div class="identity-item"><strong>Téléphone :</strong> ${clean(d.telephone)}</div>
+                <div class="identity-item identity-item--full"><strong>Fenêtre :</strong> ${clean(fenetreStr)}</div>
+            </div>
+        </section>
+
+        <table class="paper-measures">
+            <thead>
+                <tr>
+                    <th>Donnees</th>
+                    <th>Diametre VD</th>
+                    <th>SIV</th>
+                    <th>DTS</th>
+                    <th>DTD</th>
+                    <th>PP</th>
+                    <th>AO</th>
+                    <th>OG</th>
+                    <th>FE</th>
+                    <th>FR</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Valeurs de reference</td>
+                    <td>30mm</td>
+                    <td>8 a 11 mm</td>
+                    <td>34 mm</td>
+                    <td>45 a 54 mm</td>
+                    <td>8 a 11 mm</td>
+                    <td>20 a 35 mm</td>
+                    <td>40 mm</td>
+                    <td>55 a 80 %</td>
+                    <td>26 a 48 %</td>
+                </tr>
+                <tr>
+                    <td>Valeurs du patient</td>
+                    <td>${clean(d.vo_dia)}</td>
+                    <td>${clean(d.siv)}</td>
+                    <td>${clean(d.dts)}</td>
+                    <td>${clean(d.dtd)}</td>
+                    <td>${clean(d.pp)}</td>
+                    <td>${clean(d.ao)}</td>
+                    <td>${clean(d.og)}</td>
+                    <td>${cleanWithUnit(d.fe, '%')}</td>
+                    <td>${cleanWithUnit(d.fr, '%')}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <section class="paper-section">
+            <ul>
+                ${bullet(d.vg_obs ? 'VG : ' + d.vg_obs : '')}
+                ${bullet(d.vd_obs ? 'VD : ' + d.vd_obs : '')}
+                ${bullet(d.aorte_obs ? 'Aorte : ' + d.aorte_obs : '')}
+                ${bullet(d.paroi_post_obs ? 'PAROI post : ' + d.paroi_post_obs : '')}
+                ${bullet(d.siv_obs ? 'SIV : ' + d.siv_obs : '')}
+                ${bullet(formatOg(d))}
+                ${bullet(formatOd(d))}
+                ${bullet(formatVci(d))}
+            </ul>
+        </section>
+
+        <section class="paper-section">
+            <h2>ETUDE VALVULAIRE <span>(texture des valves)</span></h2>
+            <ul>
+                ${bullet(d.valve_mitrale ? 'Valve mitrale : ' + d.valve_mitrale : '')}
+                ${bullet(d.valve_aortique ? 'Valve aortique : ' + d.valve_aortique : '')}
+                ${bullet(d.valve_tricuspide ? 'Valve tricuspide : ' + d.valve_tricuspide : '')}
+                ${bullet(d.valve_pulmonaire ? 'Valve pulmonaire : ' + d.valve_pulmonaire : '')}
+            </ul>
+        </section>
+
+        <section class="paper-section">
+            <h2>ETUDE VELOCIMETRIQUE</h2>
+            <ul>
+                ${bullet(d.doppler_mitrale ? 'Mitral : ' + d.doppler_mitrale : '')}
+                ${bullet(formatDopplerTricuspide(d))}
+                ${bullet(formatDopplerPulmonaire(d))}
+                ${bullet(formatDopplerAortique(d))}
+            </ul>
+        </section>
+
+        ${!empty(d.commentaire) ? `
+        <section class="paper-section">
+            <h2>COMMENTAIRE</h2>
+            <div class="paper-free-text">${nl(d.commentaire)}</div>
+        </section>` : ''}
+
+        <section class="paper-section paper-conclusion">
+            <h2>CONCLUSION :</h2>
+            <ul>${conclusionItems(d)}</ul>
+        </section>
+
+        <footer class="paper-signature">
+            <strong>${clean(echoDoctor || 'Dr')}</strong>
+        </footer>
+    `);
+}
+
+$.get(API + '/fiches.php?id=' + ficheId, renderReport).fail(function() {
+    $('#report-sheet').html('<div class="error-page"><h2>Fiche introuvable</h2><a href="liste.html" class="btn btn-primary">Retour</a></div>');
+});
+
+$('#btn-delete').on('click', () => $('#delete-modal').show());
+$('#cancel-delete').on('click', () => $('#delete-modal').hide());
+$('#delete-modal').on('click', function(e) {
+    if ($(e.target).is('#delete-modal')) $(this).hide();
+});
+$('#confirm-delete').on('click', function() {
+    $(this).prop('disabled', true);
+    $.ajax({
+        url: API + '/fiches.php?id=' + ficheId,
+        method: 'DELETE',
+        contentType: 'application/json',
+        data: JSON.stringify(getActorPayload()),
+        success: function() {
+            toast('Fiche supprimée', 'success');
+            setTimeout(() => window.location.href = 'liste.html', 1200);
+        },
+        error: function(xhr) {
+            toast(apiErrorMessage(xhr, 'Erreur lors de la suppression'), 'error');
+            $('#confirm-delete').prop('disabled', false);
+            $('#delete-modal').hide();
+        }
+    });
+});
+</script>
+</body>
+</html>

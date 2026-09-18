@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiche d'échocardiographie</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<div class="layout">
+    <nav class="sidebar">
+        <div class="sidebar-logo">Echo<span>Cardio</span></div>
+        <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Tableau de bord</a>
+        <a href="liste.html" class="nav-item"><i class="fa-solid fa-folder-open"></i> Liste des fiches</a>
+        <a href="patients.html" class="nav-item"><i class="fa-solid fa-user-injured"></i> Patients</a>
+        <a href="fiche.html" class="nav-item active"><i class="fa-solid fa-file-medical"></i> Nouvelle fiche</a>
+        <a href="users.html" class="nav-item"><i class="fa-solid fa-users"></i> Utilisateurs</a>
+    </nav>
+
+    <main class="main">
+        <div class="page-header">
+            <div class="page-header-left">
+                <a href="liste.html" class="btn btn-ghost btn-sm"><i class="fa-solid fa-arrow-left"></i> Retour</a>
+                <h1 id="page-title">Nouvelle fiche</h1>
+            </div>
+        </div>
+
+        <form id="form-fiche">
+
+        <div class="card card--section">
+            <div class="card-title">Informations patient & examen</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Nom *</label>
+                    <input type="text" name="patient_nom" class="form-control" required placeholder="NOM">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Prénom *</label>
+                    <input type="text" name="patient_prenom" class="form-control" required placeholder="Prénom">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sexe</label>
+                    <select name="sexe" class="form-control">
+                        <option value="">—</option>
+                        <option value="M">Masculin</option>
+                        <option value="F">Féminin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Âge (ans)</label>
+                    <input type="number" name="age" class="form-control" min="0" max="150">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">N° dossier</label>
+                    <input type="text" name="num_dossier" class="form-control" placeholder="Optionnel">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Téléphone</label>
+                    <input type="tel" name="telephone" class="form-control" placeholder="Optionnel">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Statut patient</label>
+                    <select name="patient_statut" id="patient_statut" class="form-control">
+                        <option value="externe">Externe</option>
+                        <option value="hospitalise">Hospitalisé</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Service</label>
+                    <input type="text" name="service" id="service" class="form-control" placeholder="Si hospitalisé">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Poids (kg)</label>
+                    <input type="number" step="0.1" name="poids" id="poids" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Taille (cm)</label>
+                    <input type="number" name="taille" id="taille" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date d'examen *</label>
+                    <input type="date" name="date_examen" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Indication</label>
+                    <input type="text" name="indication" class="form-control" placeholder="ex: Dyspnée + palpitations">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Médecin demandeur</label>
+                    <input type="text" name="medecin_demandeur" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Échographiste</label>
+                    <input type="text" name="echographiste" class="form-control">
+                </div>
+            </div>
+        </div>
+
+        <div class="card card--section">
+            <div class="card-title">Qualité & Fenêtre acoustique</div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label class="form-label">Fenêtre</label>
+                    <select name="fenetre" class="form-control">
+                        <option value="Bonne" selected>Bonne</option>
+                        <option value="Moyenne">Moyenne</option>
+                        <option value="Mauvaise">Mauvaise</option>
+                        <option value="Difficile">Difficile</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Option / Mode Fenêtre (ex: BD et TM)</label>
+                    <input type="text" name="fenetre_mode" class="form-control" value="BD et TM" placeholder="ex: BD et TM">
+                </div>
+            </div>
+        </div>
+
+        <div class="card card--section">
+            <div class="card-title">Mesures échocardiographiques</div>
+            <div class="table-wrap">
+                <table class="mesures-table">
+                    <thead>
+                        <tr>
+                            <th>Données</th>
+                            <th>Diamètre VD</th><th>SIV</th><th>DTS</th><th>DTD</th>
+                            <th>PP</th><th>AO</th><th>OG</th><th>FE</th><th>FR</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="row-ref">
+                            <td>Valeurs normales</td>
+                            <td>30</td><td>8–11</td><td>34</td><td>45–54</td>
+                            <td>8–11</td><td>20–35</td><td>40</td><td>55–80</td><td>26–48 %</td>
+                        </tr>
+                        <tr>
+                            <td class="row-patient-label">Patient</td>
+                            <td><input type="number" step="0.1" name="vo_dia" class="form-control"></td>
+                            <td><input type="number" step="0.1" name="siv" class="form-control"></td>
+                            <td><input type="number" step="0.1" name="dts" class="form-control"></td>
+                            <td><input type="number" step="0.1" name="dtd" class="form-control"></td>
+                            <td><input type="number" step="0.1" name="pp" class="form-control"></td>
+                            <td><input type="number" step="0.1" name="ao" class="form-control"></td>
+                            <td><input type="number" step="0.1" name="og" class="form-control"></td>
+                            <td><input type="number" step="0.1" name="fe" class="form-control"></td>
+                            <td><input type="number" step="0.1" name="fr" class="form-control"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card card--section">
+            <div class="card-title">Cinétique globale</div>
+            <div class="form-group">
+                <label class="form-label">Cinétique globale et segmentaire</label>
+                <input type="text" name="cinetique_globale" class="form-control">
+            </div>
+        </div>
+
+        <div class="card card--section">
+            <div class="card-title">Observations anatomiques</div>
+            <div class="form-grid">
+                <div class="form-group"><label class="form-label">VG</label><input type="text" name="vg_obs" class="form-control"></div>
+                <div class="form-group"><label class="form-label">VD</label><input type="text" name="vd_obs" class="form-control"></div>
+                <div class="form-group"><label class="form-label">Aorte</label><input type="text" name="aorte_obs" class="form-control"></div>
+                <div class="form-group"><label class="form-label">Paroi postérieure</label><input type="text" name="paroi_post_obs" class="form-control"></div>
+                <div class="form-group"><label class="form-label">SIV</label><input type="text" name="siv_obs" class="form-control"></div>
+                <div class="form-group"><label class="form-label">OG</label><input type="text" name="og_obs" class="form-control"></div>
+                <div class="form-group"><label class="form-label">S OG (cm²)</label><input type="number" step="0.1" name="s_og" class="form-control"></div>
+                <div class="form-group"><label class="form-label">OD</label><input type="text" name="od_obs" class="form-control"></div>
+                <div class="form-group"><label class="form-label">S OD (cm²)</label><input type="number" step="0.1" name="s_od" class="form-control"></div>
+                <div class="form-group"><label class="form-label">TAPS (mm)</label><input type="number" step="0.1" name="taps" class="form-control"></div>
+                <div class="form-group"><label class="form-label">VCI</label><input type="text" name="vci_obs" class="form-control"></div>
+                <div class="form-group"><label class="form-label">VCI diamètre (mm)</label><input type="number" step="0.1" name="vci_diametre" class="form-control"></div>
+            </div>
+        </div>
+
+        <div class="card card--section">
+            <div class="card-title">Étude valvulaire (texture des valves)</div>
+            <div class="form-grid">
+                <div class="form-group"><label class="form-label">Valve mitrale</label><textarea name="valve_mitrale" class="form-control" rows="2"></textarea></div>
+                <div class="form-group"><label class="form-label">Valve aortique</label><textarea name="valve_aortique" class="form-control" rows="2"></textarea></div>
+                <div class="form-group"><label class="form-label">Valve tricuspide</label><textarea name="valve_tricuspide" class="form-control" rows="2"></textarea></div>
+                <div class="form-group"><label class="form-label">Valve pulmonaire</label><textarea name="valve_pulmonaire" class="form-control" rows="2"></textarea></div>
+            </div>
+        </div>
+
+        <div class="card card--section">
+            <div class="card-title">Étude vélocimétrique (Doppler)</div>
+            <div class="form-grid">
+                <div class="form-group"><label class="form-label">Mitral</label><textarea name="doppler_mitrale" class="form-control" rows="2"></textarea></div>
+                <div class="form-group"><label class="form-label">Tricuspide</label><textarea name="doppler_tricuspide" class="form-control" rows="2"></textarea></div>
+                <div class="form-group"><label class="form-label">Pulmonaire</label><textarea name="doppler_pulmonaire" class="form-control" rows="2"></textarea></div>
+                <div class="form-group"><label class="form-label">Aortique</label><textarea name="doppler_aortique" class="form-control" rows="2"></textarea></div>
+            </div>
+            <div class="form-grid" style="margin-top:12px">
+                <div class="form-group"><label class="form-label">Tricuspide VMAX (m/s)</label><input type="number" step="0.01" name="doppler_tricuspide_vmax" class="form-control"></div>
+                <div class="form-group"><label class="form-label">PAPS (mmHg)</label><input type="number" step="0.1" name="paps" class="form-control"></div>
+                <div class="form-group"><label class="form-label">Pulmonaire VMAX (cm/s)</label><input type="number" step="0.1" name="doppler_pulmonaire_vmax" class="form-control"></div>
+                <div class="form-group"><label class="form-label">Aortique VMAX (m/s)</label><input type="number" step="0.01" name="doppler_aortique_vmax" class="form-control"></div>
+                <div class="form-group"><label class="form-label">SOR (cm²)</label><input type="number" step="0.01" name="doppler_sor" class="form-control"></div>
+                <div class="form-group"><label class="form-label">VOR (ml)</label><input type="number" step="0.01" name="doppler_vor" class="form-control"></div>
+                <div class="form-group"><label class="form-label">E/A</label><input type="number" step="0.01" name="doppler_ea" class="form-control"></div>
+            </div>
+        </div>
+
+        <div class="card card--section">
+            <div class="card-title">Autres observations</div>
+            <div class="form-group">
+                <label class="form-label">Péricarde</label>
+                <input type="text" name="pericarde" class="form-control">
+            </div>
+        </div>
+
+        <div class="card card--section">
+            <div class="card-title">Commentaire & conclusion</div>
+            <div class="form-group" style="margin-bottom:16px">
+                <label class="form-label">Commentaire</label>
+                <textarea name="commentaire" class="form-control" rows="4"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Conclusion</label>
+                <textarea name="conclusion" class="form-control" rows="3"></textarea>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="liste.html" class="btn btn-ghost">Annuler</a>
+            <button type="submit" class="btn btn-primary" id="btn-submit">Enregistrer en base</button>
+        </div>
+        </form>
+    </main>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+if (!requireLogin()) { /* redirect */ }
+
+const urlParams = new URLSearchParams(window.location.search);
+const editId = urlParams.get('id');
+
+if (!editId && !canUser('create')) {
+    toast('Accès refusé pour la création', 'error');
+    setTimeout(() => window.location.href = 'liste.html', 1000);
+}
+if (editId && !canUser('update')) {
+    toast('Accès refusé pour la modification', 'error');
+    setTimeout(() => window.location.href = 'liste.html', 1000);
+}
+
+const ECHO_FIELDS = [
+    'date_examen','indication','medecin_demandeur','echographiste','fenetre','fenetre_mode',
+    'vo_dia','siv','dts','dtd','pp','ao','og','fe','fr',
+    'cinetique_globale','vg_obs','vd_obs','aorte_obs','paroi_post_obs','siv_obs','og_obs','s_og','od_obs','s_od','taps','vci_obs','vci_diametre',
+    'valve_mitrale','valve_aortique','valve_tricuspide','valve_pulmonaire','pericarde',
+    'doppler_mitrale','doppler_tricuspide','doppler_pulmonaire','doppler_aortique',
+    'doppler_tricuspide_vmax','paps','doppler_pulmonaire_vmax','doppler_aortique_vmax','doppler_sor','doppler_vor','doppler_ea',
+    'commentaire','conclusion'
+];
+
+function syncPatientStatut() {
+    const isHospitalise = $('#patient_statut').val() === 'hospitalise';
+    $('#service').prop('disabled', !isHospitalise);
+    if (!isHospitalise) $('#service').val('');
+}
+$('#patient_statut').on('change', syncPatientStatut);
+syncPatientStatut();
+
+if (editId) {
+    $('#page-title').text('Modifier la fiche');
+    $.get(API + '/fiches.php?id=' + editId)
+        .done(function(d) {
+            $('[name="patient_nom"]').val(d.patient_nom);
+            $('[name="patient_prenom"]').val(d.patient_prenom);
+            $('[name="age"]').val(d.age);
+            $('[name="sexe"]').val(d.sexe);
+            $('[name="poids"]').val(d.poids);
+            $('[name="taille"]').val(d.taille);
+            $('[name="telephone"]').val(d.telephone);
+            $('[name="num_dossier"]').val(d.num_dossier);
+            $('[name="service"]').val(d.service);
+            $('#patient_statut').val(d.service ? 'hospitalise' : 'externe');
+            syncPatientStatut();
+            ECHO_FIELDS.forEach(f => $('[name="'+f+'"]').val(d[f]));
+        })
+        .fail(function(xhr) {
+            toast(apiErrorMessage(xhr, 'Fiche introuvable'), 'error');
+        });
+} else {
+    $('[name="date_examen"]').val(new Date().toISOString().split('T')[0]);
+}
+
+$('#form-fiche').on('submit', function(e) {
+    e.preventDefault();
+    const data = {};
+    $(this).serializeArray().forEach(f => { data[f.name] = f.value; });
+    if ($('#patient_statut').val() !== 'hospitalise') data.service = '';
+    delete data.patient_statut;
+    Object.assign(data, getActorPayload());
+
+    const method = editId ? 'PUT' : 'POST';
+    const url = API + '/fiches.php' + (editId ? '?id=' + editId : '');
+
+    $('#btn-submit').prop('disabled', true).text('Enregistrement…');
+    $.ajax({
+        url, method,
+        contentType: 'application/json',
+        data: JSON.stringify(data),
+        success: function() {
+            toast('Fiche enregistrée en base de données', 'success');
+            setTimeout(() => window.location.href = 'liste.html?saved=1', 800);
+        },
+        error: function(xhr) {
+            toast(apiErrorMessage(xhr, 'Erreur lors de l\'enregistrement'), 'error');
+            $('#btn-submit').prop('disabled', false).text('Enregistrer en base');
+        }
+    });
+});
+</script>
+</body>
+</html>

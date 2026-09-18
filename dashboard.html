@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tableau de bord — Échocardiographies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<div class="layout">
+    <nav class="sidebar">
+        <div class="sidebar-logo">Echo<span>Cardio</span></div>
+        <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Tableau de bord</a>
+        <a href="liste.html" class="nav-item"><i class="fa-solid fa-folder-open"></i> Liste des fiches</a>
+        <a href="patients.html" class="nav-item"><i class="fa-solid fa-user-injured"></i> Patients</a>
+        <a href="fiche.html" class="nav-item"><i class="fa-solid fa-file-medical"></i> Nouvelle fiche</a>
+        <a href="users.html" class="nav-item"><i class="fa-solid fa-users"></i> Utilisateurs</a>
+    </nav>
+
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1>Tableau de bord</h1>
+                <p class="page-subtitle" id="today-date"></p>
+            </div>
+            <a href="fiche.html" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Nouvelle fiche</a>
+        </div>
+
+        <!-- Recherche rapide -->
+        <div class="card card--section" style="margin-bottom:20px">
+            <div class="card-title">Recherche rapide</div>
+            <div class="search-bar">
+                <div class="form-group" style="flex:2;min-width:180px">
+                    <label class="form-label">Patient</label>
+                    <input type="text" id="q-nom" class="form-control" placeholder="Nom ou prénom…">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">N° dossier</label>
+                    <input type="text" id="q-dossier" class="form-control" placeholder="Optionnel">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date début</label>
+                    <input type="date" id="q-date-debut" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Date fin</label>
+                    <input type="date" id="q-date-fin" class="form-control">
+                </div>
+                <button class="btn btn-primary" id="btn-quick-search">Rechercher</button>
+            </div>
+            <div id="quick-results" style="display:none;margin-top:16px">
+                <div class="table-wrap">
+                    <table>
+                        <thead><tr><th>Patient</th><th>Dossier</th><th>Date</th><th>FE</th><th></th></tr></thead>
+                        <tbody id="quick-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="stats-grid">
+            <div class="stat-card"><div class="stat-value" id="s-total">—</div><div class="stat-label">Total fiches</div></div>
+            <div class="stat-card"><div class="stat-value" id="s-patients">—</div><div class="stat-label">Patients</div></div>
+            <div class="stat-card"><div class="stat-value" id="s-mois">—</div><div class="stat-label">Ce mois-ci</div></div>
+            <div class="stat-card"><div class="stat-value" id="s-fe">—</div><div class="stat-label">FE moyenne</div></div>
+        </div>
+
+        <div class="chart-grid">
+            <div class="card card--section">
+                <div class="card-title">Évolution des examens par mois</div>
+                <div class="chart-wrap"><canvas id="chart-volume"></canvas></div>
+            </div>
+            <div class="card card--section">
+                <div class="card-title">Évolution de la FE</div>
+                <div class="chart-wrap"><canvas id="chart-fe-trend"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Dernières fiches -->
+        <div class="card card--section">
+            <div class="card-title">Dernières fiches enregistrées</div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Patient</th><th>N° dossier</th><th>Date</th><th>Indication</th><th>FE</th><th>Actions</th></tr></thead>
+                    <tbody id="recent-table"><tr><td colspan="6" class="table-empty">Chargement…</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+if (!requireLogin()) { /* redirect */ }
+$('#today-date').text(new Date().toLocaleDateString('fr-FR', {weekday:'long',year:'numeric',month:'long',day:'numeric'}));
+
+$.get(API + '/stats.php')
+    .done(function(d) {
+    $('#s-total').text(d.total_fiches);
+    $('#s-patients').text(d.total_patients);
+    $('#s-mois').text(d.fiches_mois);
+    $('#s-fe').text(d.fe_moyenne ? d.fe_moyenne + ' %' : '—');
+
+    const rows = d.dernieres_fiches.map(f => `
+        <tr>
+            <td><strong>${f.nom} ${f.prenom}</strong></td>
+            <td>${f.num_dossier || '<span class="text-muted">—</span>'}</td>
+            <td>${fmtDate(f.date_examen)}</td>
+            <td class="cell-truncate">${f.indication || '—'}</td>
+            <td>${badgeFE(f.fe)}</td>
+            <td><a href="detail.html?id=${f.id}" class="btn btn-ghost btn-sm">Voir</a></td>
+        </tr>`).join('');
+    $('#recent-table').html(rows || '<tr><td colspan="6" class="table-empty">Aucune fiche</td></tr>');
+
+    const monthlyData = (d.par_mois || []).map(item => ({
+        month: item.mois,
+        count: Number(item.nb) || 0
+    }));
+
+    const volumeCanvas = document.getElementById('chart-volume');
+    if (volumeCanvas) {
+        if (monthlyData.length && monthlyData.some(item => item.count > 0)) {
+            new Chart(volumeCanvas, {
+                type: 'line',
+                data: {
+                    labels: monthlyData.map(item => item.month),
+                    datasets: [{
+                        label: 'Nombre d’examens',
+                        data: monthlyData.map(item => item.count),
+                        borderColor: '#1A56DB',
+                        backgroundColor: 'rgba(26, 86, 219, 0.16)',
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 } }
+                    }
+                }
+            });
+        } else {
+            volumeCanvas.parentElement.innerHTML = '<div class="table-empty">Aucune donnée disponible</div>';
+        }
+    }
+
+    const feTrendData = (d.dernieres_fiches || [])
+        .filter(f => f.fe !== null && f.fe !== undefined && f.fe !== '')
+        .slice(0, 8)
+        .map(f => ({
+            label: fmtDate(f.date_examen),
+            value: Number(f.fe)
+        }));
+
+    const feCanvas = document.getElementById('chart-fe-trend');
+    if (feCanvas) {
+        if (feTrendData.length) {
+            new Chart(feCanvas, {
+                type: 'bar',
+                data: {
+                    labels: feTrendData.map(item => item.label),
+                    datasets: [{
+                        label: 'FE (%)',
+                        data: feTrendData.map(item => item.value),
+                        backgroundColor: '#16A34A',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, suggestedMax: 75 }
+                    }
+                }
+            });
+        } else {
+            feCanvas.parentElement.innerHTML = '<div class="table-empty">Aucune valeur de FE disponible</div>';
+        }
+    }
+})
+.fail(function(xhr) {
+    toast(apiErrorMessage(xhr, 'Erreur chargement statistiques'), 'error');
+    $('#recent-table').html('<tr><td colspan="6" class="table-empty">Impossible de charger les données</td></tr>');
+});
+
+function doQuickSearch() {
+    const params = {
+        nom: $('#q-nom').val(),
+        num_dossier: $('#q-dossier').val(),
+        date_debut: $('#q-date-debut').val(),
+        date_fin: $('#q-date-fin').val()
+    };
+    if (!params.nom && !params.num_dossier && !params.date_debut && !params.date_fin) {
+        toast('Saisissez au moins un critère de recherche', 'error');
+        return;
+    }
+    $.get(API + '/search.php', params, function(data) {
+        $('#quick-results').show();
+        if (!data.length) {
+            $('#quick-table').html('<tr><td colspan="5" class="table-empty">Aucun résultat</td></tr>');
+            return;
+        }
+        $('#quick-table').html(data.map(f => `
+            <tr>
+                <td><strong>${f.nom} ${f.prenom}</strong></td>
+                <td>${f.num_dossier || '—'}</td>
+                <td>${fmtDate(f.date_examen)}</td>
+                <td>${badgeFE(f.fe)}</td>
+                <td><a href="detail.html?id=${f.id}" class="btn btn-ghost btn-sm">Voir</a></td>
+            </tr>`).join(''));
+    });
+}
+
+$('#btn-quick-search').on('click', doQuickSearch);
+$('#q-nom').on('keypress', e => { if (e.key === 'Enter') doQuickSearch(); });
+</script>
+</body>
+</html>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gestion des utilisateurs — EchoCardio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+<div class="layout">
+    <nav class="sidebar">
+        <div class="sidebar-logo">Echo<span>Cardio</span></div>
+        <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Tableau de bord</a>
+        <a href="liste.html" class="nav-item"><i class="fa-solid fa-folder-open"></i> Liste des fiches</a>
+        <a href="patients.html" class="nav-item"><i class="fa-solid fa-user-injured"></i> Patients</a>
+        <a href="fiche.html" class="nav-item"><i class="fa-solid fa-file-medical"></i> Nouvelle fiche</a>
+        <a href="users.html" class="nav-item active"><i class="fa-solid fa-users"></i> Utilisateurs</a>
+    </nav>
+
+    <main class="main">
+        <div class="page-header">
+            <div>
+                <h1>Gestion des utilisateurs et des rôles</h1>
+                <p class="page-subtitle">Administration des comptes, droits et journaux d’activité</p>
+            </div>
+        </div>
+
+        <div class="card card--section" style="margin-bottom:20px">
+            <div class="card-title">Session connectée</div>
+            <div class="info-grid" id="session-info"></div>
+        </div>
+
+        <div class="card card--section" style="margin-bottom:20px">
+            <div class="card-title">Rôles</div>
+            <form id="role-form">
+                <input type="hidden" id="role-id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Nom du rôle</label>
+                        <input type="text" id="role-nom" class="form-control" required placeholder="ADMIN">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Description</label>
+                        <input type="text" id="role-description" class="form-control" placeholder="Description">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Gérer les utilisateurs</label>
+                        <select id="can-manage-users" class="form-control">
+                            <option value="1">Oui</option>
+                            <option value="0">Non</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Voir les logs</label>
+                        <select id="can-view-logs" class="form-control">
+                            <option value="1">Oui</option>
+                            <option value="0">Non</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Créer les fiches</label>
+                        <select id="can-create-fiches" class="form-control">
+                            <option value="1">Oui</option>
+                            <option value="0">Non</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Modifier les fiches</label>
+                        <select id="can-update-fiches" class="form-control">
+                            <option value="1">Oui</option>
+                            <option value="0">Non</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Supprimer les fiches</label>
+                        <select id="can-delete-fiches" class="form-control">
+                            <option value="1">Oui</option>
+                            <option value="0">Non</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions" style="margin-top:16px">
+                    <button type="button" class="btn btn-ghost" id="cancel-role">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer le rôle</button>
+                </div>
+            </form>
+            <div class="table-wrap" style="margin-top:16px">
+                <table>
+                    <thead><tr><th>Nom</th><th>Description</th><th>Droits</th><th>Actions</th></tr></thead>
+                    <tbody id="roles-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card card--section" style="margin-bottom:20px">
+            <div class="card-title">Utilisateurs</div>
+            <form id="user-form">
+                <input type="hidden" id="user-id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Nom d’utilisateur</label>
+                        <input type="text" id="user-username" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nom</label>
+                        <input type="text" id="user-nom" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Prénom</label>
+                        <input type="text" id="user-prenom" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" id="user-email" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Mot de passe</label>
+                        <input type="password" id="user-password" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Rôle</label>
+                        <select id="user-role" class="form-control"></select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Actif</label>
+                        <select id="user-active" class="form-control">
+                            <option value="1">Oui</option>
+                            <option value="0">Non</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions" style="margin-top:16px">
+                    <button type="button" class="btn btn-ghost" id="cancel-user">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer l’utilisateur</button>
+                </div>
+            </form>
+            <div class="table-wrap" style="margin-top:16px">
+                <table>
+                    <thead><tr><th>Nom d’utilisateur</th><th>Nom complet</th><th>Rôle</th><th>Statut</th><th>Actions</th></tr></thead>
+                    <tbody id="users-table"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card card--section">
+            <div class="card-title">Journaux d’activité</div>
+            <div class="table-wrap">
+                <table>
+                    <thead><tr><th>Utilisateur</th><th>Rôle</th><th>Action</th><th>Détails</th><th>Date</th></tr></thead>
+                    <tbody id="logs-table"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+const storedUser = sessionStorage.getItem('echo_user');
+if (!requireLogin()) {
+    /* redirect */
+} else {
+    let currentUser = getStoredUser();
+    if (!currentUser) {
+        window.location.href = 'login.html';
+    } else if (!canUser('manage_users')) {
+        window.location.href = 'dashboard.html';
+    } else {
+        $('#session-info').html(`
+            <div class="info-item"><span class="info-item__label">Utilisateur</span><span>${escHtml(getUserDisplayName(currentUser))}</span></div>
+            <div class="info-item"><span class="info-item__label">Identifiant</span><span>${escHtml(currentUser.username || '—')}</span></div>
+            <div class="info-item"><span class="info-item__label">Rôle</span><span>${escHtml(getUserRole(currentUser).toUpperCase())}</span></div>
+        `);
+    }
+}
+
+function getActorPayloadForAdmin() {
+    return getActorPayload();
+}
+
+function loadRoles() {
+    $.get(API + '/roles.php', getActorPayloadForAdmin())
+        .done(function(data) {
+            renderRoles(data);
+            const options = (data || []).map(r => `<option value="${r.id}">${escHtml(r.nom)}</option>`).join('');
+            $('#user-role').html(options);
+        })
+        .fail(function(xhr) {
+            toast(apiErrorMessage(xhr, 'Erreur chargement rôles'), 'error');
+        });
+}
+
+function renderRoles(list) {
+    $('#roles-table').html((list || []).map(r => `
+        <tr>
+            <td>${r.nom}</td>
+            <td>${r.description || '—'}</td>
+            <td>${[(r.can_manage_users ? 'Utilisateurs' : ''), (r.can_view_logs ? 'Logs' : ''), (r.can_create_fiches ? 'Créer fiches' : ''), (r.can_update_fiches ? 'Modifier fiches' : ''), (r.can_delete_fiches ? 'Supprimer fiches' : '')].filter(Boolean).join(', ') || '—'}</td>
+            <td><div class="action-group"><button class="btn btn-ghost btn-sm" data-edit-role="${r.id}">Modifier</button><button class="btn btn-danger btn-sm" data-delete-role="${r.id}">Supprimer</button></div></td>
+        </tr>
+    `).join(''));
+}
+
+function loadUsers() {
+    $.get(API + '/users.php', getActorPayloadForAdmin())
+        .done(renderUsers)
+        .fail(function(xhr) {
+            toast(apiErrorMessage(xhr, 'Erreur chargement utilisateurs'), 'error');
+        });
+}
+
+function renderUsers(list) {
+    $('#users-table').html((list || []).map(u => `
+        <tr>
+            <td>${u.username}</td>
+            <td>${u.nom} ${u.prenom}</td>
+            <td>${u.role_name || '—'}</td>
+            <td>${u.is_active ? 'Actif' : 'Inactif'}</td>
+            <td><div class="action-group"><button class="btn btn-ghost btn-sm" data-edit-user="${u.id}">Modifier</button><button class="btn btn-danger btn-sm" data-delete-user="${u.id}">Supprimer</button></div></td>
+        </tr>
+    `).join(''));
+}
+
+function loadLogs() {
+    $.get(API + '/logs.php', getActorPayloadForAdmin())
+        .done(function(data) {
+        $('#logs-table').html((data || []).map(l => `
+            <tr>
+                <td>${l.user_name || '—'}</td>
+                <td>${l.role_name || '—'}</td>
+                <td>${l.action || '—'}</td>
+                <td>${l.details || '—'}</td>
+                <td>${fmtDate(l.created_at)}</td>
+            </tr>
+        `).join(''));
+        })
+        .fail(function(xhr) {
+            toast(apiErrorMessage(xhr, 'Erreur chargement logs'), 'error');
+        });
+}
+
+$('#role-form').on('submit', function(e) {
+    e.preventDefault();
+    const id = $('#role-id').val();
+    const payload = {
+        nom: $('#role-nom').val(),
+        description: $('#role-description').val(),
+        can_manage_users: $('#can-manage-users').val(),
+        can_view_logs: $('#can-view-logs').val(),
+        can_create_fiches: $('#can-create-fiches').val(),
+        can_update_fiches: $('#can-update-fiches').val(),
+        can_delete_fiches: $('#can-delete-fiches').val(),
+        can_manage_fiches: $('#can-create-fiches').val() === '1' || $('#can-update-fiches').val() === '1' || $('#can-delete-fiches').val() === '1' ? '1' : '0',
+        can_view_fiches: '1',
+        ...getActorPayloadForAdmin()
+    };
+    const method = id ? 'PUT' : 'POST';
+    const url = API + '/roles.php' + (id ? '?id=' + id : '');
+    $.ajax({ url, method, contentType: 'application/json', data: JSON.stringify(payload), success: function() { resetRoleForm(); loadRoles(); loadLogs(); } });
+});
+
+$('#user-form').on('submit', function(e) {
+    e.preventDefault();
+    const id = $('#user-id').val();
+    const payload = {
+        username: $('#user-username').val(),
+        nom: $('#user-nom').val(),
+        prenom: $('#user-prenom').val(),
+        email: $('#user-email').val(),
+        mot_de_passe: $('#user-password').val(),
+        role_id: $('#user-role').val(),
+        is_active: $('#user-active').val(),
+        ...getActorPayloadForAdmin()
+    };
+    const method = id ? 'PUT' : 'POST';
+    const url = API + '/users.php' + (id ? '?id=' + id : '');
+    $.ajax({ url, method, contentType: 'application/json', data: JSON.stringify(payload), success: function() { resetUserForm(); loadUsers(); loadLogs(); } });
+});
+
+function resetRoleForm() {
+    $('#role-form')[0].reset();
+    $('#role-id').val('');
+    $('#can-manage-users').val('1');
+    $('#can-view-logs').val('1');
+    $('#can-create-fiches').val('1');
+    $('#can-update-fiches').val('1');
+    $('#can-delete-fiches').val('1');
+}
+
+function resetUserForm() {
+    $('#user-form')[0].reset();
+    $('#user-id').val('');
+    $('#user-active').val('1');
+}
+
+$('#cancel-role').on('click', resetRoleForm);
+$('#cancel-user').on('click', resetUserForm);
+
+$(document).on('click', '[data-edit-role]', function() {
+    const id = $(this).data('edit-role');
+    $.get(API + '/roles.php?id=' + id, getActorPayloadForAdmin(), function(r) {
+        $('#role-id').val(r.id);
+        $('#role-nom').val(r.nom);
+        $('#role-description').val(r.description || '');
+        $('#can-manage-users').val(r.can_manage_users ? '1' : '0');
+        $('#can-view-logs').val(r.can_view_logs ? '1' : '0');
+        $('#can-create-fiches').val(r.can_create_fiches ? '1' : '0');
+        $('#can-update-fiches').val(r.can_update_fiches ? '1' : '0');
+        $('#can-delete-fiches').val(r.can_delete_fiches ? '1' : '0');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+});
+
+$(document).on('click', '[data-delete-role]', function() {
+    const id = $(this).data('delete-role');
+    if (!confirm('Supprimer ce rôle ?')) return;
+    $.ajax({ url: API + '/roles.php?id=' + id, method: 'DELETE', contentType: 'application/json', data: JSON.stringify(getActorPayloadForAdmin()), success: function() { loadRoles(); loadLogs(); }, error: function(xhr) { toast(apiErrorMessage(xhr, 'Erreur suppression rôle'), 'error'); } });
+});
+
+$(document).on('click', '[data-edit-user]', function() {
+    const id = $(this).data('edit-user');
+    $.get(API + '/users.php?id=' + id, getActorPayloadForAdmin(), function(r) {
+        $('#user-id').val(r.id);
+        $('#user-username').val(r.username);
+        $('#user-nom').val(r.nom);
+        $('#user-prenom').val(r.prenom);
+        $('#user-email').val(r.email || '');
+        $('#user-password').val('');
+        $('#user-role').val(r.role_id || '');
+        $('#user-active').val(r.is_active ? '1' : '0');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+});
+
+$(document).on('click', '[data-delete-user]', function() {
+    const id = $(this).data('delete-user');
+    if (!confirm('Supprimer cet utilisateur ?')) return;
+    $.ajax({ url: API + '/users.php?id=' + id, method: 'DELETE', contentType: 'application/json', data: JSON.stringify(getActorPayloadForAdmin()), success: function() { loadUsers(); loadLogs(); }, error: function(xhr) { toast(apiErrorMessage(xhr, 'Erreur suppression utilisateur'), 'error'); } });
+});
+
+resetRoleForm();
+resetUserForm();
+loadRoles();
+loadUsers();
+loadLogs();
+</script>
+</body>
+</html>

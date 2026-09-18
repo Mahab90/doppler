@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — EchoCardio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>body { background: linear-gradient(135deg, #eef2ff, #f8fafc); }</style>
+</head>
+<body>
+<div class="login-card">
+    <h1 class="login-title">Connexion</h1>
+    <p class="login-subtitle">Accédez à l’application EchoCardio</p>
+    <div class="login-accounts hide" hidden>
+        <strong>Comptes de test :</strong><br>
+        admin / admin123 — Administration complète<br>
+        m1 / m1test123 — Créer, modifier, supprimer fiches<br>
+        m2 / m2test123 — Créer et consulter fiches uniquement
+    </div>
+    <form id="login-form">
+        <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label">Nom d’utilisateur</label>
+            <input type="text" id="username" class="form-control" required autocomplete="username">
+        </div>
+        <div class="form-group" style="margin-bottom:16px">
+            <label class="form-label">Mot de passe</label>
+            <input type="password" id="password" class="form-control" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%">Se connecter</button>
+    </form>
+    <p style="text-align:center;margin-top:16px;font-size:12px">
+        <a href="tests/index.html">Page de tests API</a>
+    </p>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+$('#login-form').on('submit', function(e) {
+    e.preventDefault();
+    $.ajax({
+        url: API + '/login.php',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ username: $('#username').val(), password: $('#password').val() }),
+        success: function(user) {
+            sessionStorage.setItem('echo_user', JSON.stringify(user));
+            syncSessionActor();
+            window.location.href = 'dashboard.html';
+        },
+        error: function(xhr) {
+            alert(apiErrorMessage(xhr, 'Identifiants invalides'));
+        }
+    });
+});
+</script>
+</body>
+</html>
