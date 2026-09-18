@@ -5,6 +5,10 @@ $pdo = getDB();
 $where = ['1=1'];
 $params = [];
 
+$page = max(1, (int)($_GET['page'] ?? 1));
+$limit = 15; // Match list limit
+$offset = ($page - 1) * $limit;
+
 if (!empty($_GET['q'])) {
     $q = '%' . trim($_GET['q']) . '%';
     $where[] = "(p.nom ILIKE :q OR p.prenom ILIKE :q OR CONCAT(p.nom, ' ', p.prenom) ILIKE :q OR p.num_dossier ILIKE :q OR p.telephone ILIKE :q OR e.indication ILIKE :q OR e.conclusion ILIKE :q OR e.echographiste ILIKE :q)";
@@ -40,6 +44,18 @@ if (!empty($_GET['indication'])) {
     $params['indication'] = '%' . trim($_GET['indication']) . '%';
 }
 
+$whereClause = implode(' AND ', $where);
+
+$countSql = "
+    SELECT COUNT(*) 
+    FROM echocardiographies e
+    JOIN patients p ON p.id = e.patient_id
+    WHERE $whereClause
+";
+$countStmt = $pdo->prepare($countSql);
+$countStmt->execute($params);
+$total = (int)$countStmt->fetchColumn();
+
 $sql = "
     SELECT e.id, e.date_examen, e.fe, e.conclusion, e.indication,
            p.nom, p.prenom, p.sexe, p.date_naissance, p.age,
@@ -48,11 +64,17 @@ $sql = "
     FROM echocardiographies e
     JOIN patients p ON p.id = e.patient_id
     LEFT JOIN medecins m ON m.id = e.medecin_id
-    WHERE " . implode(' AND ', $where) . "
+    WHERE $whereClause
     ORDER BY e.date_examen DESC, e.id DESC
-    LIMIT 200
+    LIMIT :limit OFFSET :offset
 ";
 
 $stmt = $pdo->prepare($sql);
-$stmt->execute($params);
-json_response($stmt->fetchAll());
+foreach ($params as $name => $val) {
+    $stmt->bindValue($name, $val);
+}
+$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
+
+json_response(['data' => $stmt->fetchAll(), 'total' => $total, 'page' => $page]);

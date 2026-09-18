@@ -29,9 +29,22 @@
         </div>
 
         <form id="form-fiche">
+        <input type="hidden" name="patient_id" id="patient_id" value="">
 
         <div class="card card--section">
             <div class="card-title">Informations patient & examen</div>
+            
+            <div class="form-group" style="position:relative;">
+                <label class="form-label">Rechercher un patient existant</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="patient_search" class="form-control" autocomplete="off" placeholder="Nom, prénom, n° dossier...">
+                    <button type="button" class="btn btn-primary" onclick="clearPatientSelection()" title="Nouveau patient"><i class="fa-solid fa-user-plus"></i></button>
+                </div>
+                <div id="patient_autocomplete" style="display:none; position:absolute; top:100%; left:0; right:48px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-sm); z-index:1000; max-height:200px; overflow-y:auto; box-shadow:var(--shadow-md);"></div>
+            </div>
+            
+            <hr style="margin:20px 0; border:none; border-top:1px solid var(--border);">
+            
             <div class="form-grid">
                 <div class="form-group">
                     <label class="form-label">Nom *</label>
@@ -268,14 +281,89 @@ function syncPatientStatut() {
     if (!isHospitalise) $('#service').val('');
 }
 $('#patient_statut').on('change', syncPatientStatut);
+$('#patient_statut').on('change', syncPatientStatut);
 syncPatientStatut();
+
+let patientSearchTimer = null;
+$('#patient_search').on('input', function() {
+    const q = $(this).val().trim();
+    if (q.length < 2) {
+        $('#patient_autocomplete').hide();
+        return;
+    }
+    clearTimeout(patientSearchTimer);
+    patientSearchTimer = setTimeout(() => {
+        $.get(API + '/patients.php', { page: 1, q: q })
+            .done(function(res) {
+                const data = res.data || [];
+                if (!data.length) {
+                    $('#patient_autocomplete').html('<div style="padding:10px; color:var(--text-muted);">Aucun patient trouvé</div>').show();
+                    return;
+                }
+                let html = data.map(p => `
+                    <div class="autocomplete-item" style="padding:10px; cursor:pointer; border-bottom:1px solid var(--border);" 
+                         onclick='selectPatient(${JSON.stringify(p).replace(/'/g, "&#39;")})' onmouseover="this.style.background='var(--primary-light)'" onmouseout="this.style.background=''">
+                        <strong>${escHtml(p.nom)} ${escHtml(p.prenom)}</strong> 
+                        <span class="text-muted text-sm">- ${p.age ? p.age+' ans' : ''} ${p.num_dossier ? ' | Dossier: '+escHtml(p.num_dossier) : ''}</span>
+                    </div>`).join('');
+                $('#patient_autocomplete').html(html).show();
+            });
+    }, 300);
+});
+
+$(document).on('click', function(e) {
+    if (!$(e.target).closest('#patient_search, #patient_autocomplete').length) {
+        $('#patient_autocomplete').hide();
+    }
+});
+
+function selectPatient(p) {
+    $('#patient_id').val(p.id);
+    $('#patient_search').val(p.nom + ' ' + p.prenom);
+    $('#patient_autocomplete').hide();
+    
+    $('[name="patient_nom"]').val(p.nom).prop('readonly', true);
+    $('[name="patient_prenom"]').val(p.prenom).prop('readonly', true);
+    $('[name="sexe"]').val(p.sexe).css('pointer-events', 'none');
+    $('[name="age"]').val(p.age).prop('readonly', true);
+    $('[name="num_dossier"]').val(p.num_dossier).prop('readonly', true);
+    $('[name="telephone"]').val(p.telephone).prop('readonly', true);
+    $('[name="poids"]').val(p.poids).prop('readonly', true);
+    $('[name="taille"]').val(p.taille).prop('readonly', true);
+    $('#patient_statut').val(p.service ? 'hospitalise' : 'externe').css('pointer-events', 'none');
+    $('[name="service"]').val(p.service).prop('readonly', true);
+    syncPatientStatut();
+    
+    toast('Patient sélectionné', 'success');
+}
+
+function clearPatientSelection() {
+    $('#patient_id').val('');
+    $('#patient_search').val('');
+    
+    const fields = ['patient_nom', 'patient_prenom', 'age', 'num_dossier', 'telephone', 'poids', 'taille', 'service'];
+    fields.forEach(f => {
+        $('[name="'+f+'"]').val('').prop('readonly', false);
+    });
+    $('[name="sexe"]').val('').css('pointer-events', 'auto');
+    $('#patient_statut').val('externe').css('pointer-events', 'auto');
+    syncPatientStatut();
+    $('[name="patient_nom"]').focus();
+}
 
 if (editId) {
     $('#page-title').text('Modifier la fiche');
     $.get(API + '/fiches.php?id=' + editId)
         .done(function(d) {
-            $('[name="patient_nom"]').val(d.patient_nom);
-            $('[name="patient_prenom"]').val(d.patient_prenom);
+            if (d.patient_id) selectPatient({
+                id: d.patient_id, nom: d.patient_nom, prenom: d.patient_prenom,
+                age: d.age, sexe: d.sexe, poids: d.poids, taille: d.taille,
+                telephone: d.telephone, num_dossier: d.num_dossier, service: d.service
+            });
+            else {
+                $('[name="patient_nom"]').val(d.patient_nom);
+                $('[name="patient_prenom"]').val(d.patient_prenom);
+            }
             $('[name="age"]').val(d.age);
             $('[name="sexe"]').val(d.sexe);
             $('[name="poids"]').val(d.poids);

@@ -17,6 +17,12 @@ $stats = [
         WHERE date_examen >= CURRENT_DATE - INTERVAL '6 months'
         GROUP BY mois ORDER BY mois
     ")->fetchAll(),
+    'par_sexe'       => $pdo->query("
+        SELECT sexe, COUNT(*) AS nb
+        FROM patients
+        WHERE sexe IS NOT NULL
+        GROUP BY sexe
+    ")->fetchAll(),
     'dernieres_fiches' => $pdo->query("
         SELECT e.id, e.date_examen, e.fe, e.indication,
                p.nom, p.prenom, p.num_dossier

@@ -112,7 +112,7 @@ function loadList(page = 1) {
 
 let searchTimer = null;
 
-function doSearch() {
+function doSearch(page = 1) {
     const q = $('#f-query').val().trim();
     const date_debut = $('#f-date-debut').val();
     const date_fin = $('#f-date-fin').val();
@@ -124,12 +124,14 @@ function doSearch() {
     }
 
     searchMode = true;
-    const params = { q, date_debut, date_fin, sexe };
+    currentPage = page;
+    const params = { q, date_debut, date_fin, sexe, page };
     $.get(API + '/search.php', params)
-        .done(function(data) {
-            renderTable(Array.isArray(data) ? data : []);
-            $('#result-count').text('(' + (Array.isArray(data) ? data.length : 0) + ' résultat(s))');
-            $('#pagination').empty();
+        .done(function(res) {
+            const data = res?.data || [];
+            renderTable(data);
+            $('#result-count').text('(' + (res?.total || 0) + ' résultat(s))');
+            renderPagination(res?.total || 0, page);
         })
         .fail(function(xhr) {
             toast(apiErrorMessage(xhr, 'Erreur de recherche'), 'error');
@@ -138,7 +140,7 @@ function doSearch() {
 
 function triggerInstantSearch() {
     clearTimeout(searchTimer);
-    searchTimer = setTimeout(doSearch, 250);
+    searchTimer = setTimeout(() => doSearch(1), 250);
 }
 
 function renderTable(data) {
@@ -172,9 +174,17 @@ function renderPagination(total, page) {
     if (pages <= 1) { $('#pagination').empty(); return; }
     let html = '';
     for (let i = 1; i <= pages; i++) {
-        html += `<button class="btn ${i === page ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="loadList(${i})">${i}</button>`;
+        html += `<button class="btn ${i === page ? 'btn-primary' : 'btn-ghost'} btn-sm" onclick="goToPage(${i})">${i}</button>`;
     }
     $('#pagination').html(html);
+}
+
+function goToPage(page) {
+    if (searchMode) {
+        doSearch(page);
+    } else {
+        loadList(page);
+    }
 }
 
 function deleteFiche(id) {
@@ -190,7 +200,7 @@ function deleteFiche(id) {
             data: JSON.stringify(getActorPayload()),
             success: function() {
                 toast('Fiche supprimée', 'success');
-                searchMode ? doSearch() : loadList(currentPage);
+                searchMode ? doSearch(currentPage) : loadList(currentPage);
             },
             error: function(xhr) {
                 toast(apiErrorMessage(xhr, 'Erreur lors de la suppression'), 'error');

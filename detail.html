@@ -153,17 +153,27 @@ function formatDopplerAortique(d) {
     return 'Aorte : ' + parts.join(' ; ');
 }
 
+let pdfFilename = 'Fiche.pdf';
+
 function downloadPDF() {
     const element = document.getElementById('report-sheet');
-    const filename = (document.title || 'Echo_Doppler_Cardiaque').replace(/[^a-zA-Z0-9_\-]/g, '_') + '.pdf';
+    const btn = document.querySelector('[onclick="downloadPDF()"]');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Génération...';
+    btn.disabled = true;
+
     const opt = {
         margin: [10, 10, 10, 10],
-        filename: filename,
+        filename: pdfFilename,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
-    html2pdf().set(opt).from(element).save();
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    });
 }
 
 function conclusionItems(d) {
@@ -193,6 +203,7 @@ function renderReport(d) {
     ].join('');
 
     document.title = fullName + ' - Echo Doppler cardiaque';
+    pdfFilename = `Fiche_${d.id}_${(d.patient_nom + '_' + (d.patient_prenom || '')).trim().replace(/[^a-zA-Z0-9]/g, '_')}_${d.date_examen}.pdf`;
 
     const fenetreStr = [d.fenetre || 'Bonne', d.fenetre_mode].filter(Boolean).join(' ');
 
@@ -206,7 +217,10 @@ function renderReport(d) {
                 <div>MATERNITE ISSAKA GAZOBY / E.P.A / NIAMEY</div>
                 <div class="exam-date">DATE DE L'EXAMEN : ${clean(examDate)}</div>
             </div>
-            <h1>ECHO DOPPLER CARDIAQUE</h1>
+            <h1 style="display:flex; justify-content:space-between; align-items:baseline;">
+                <span>ECHO DOPPLER CARDIAQUE</span>
+                <span style="font-size: 14px; font-weight: normal; color: #555;">N° Fiche : ${d.id}</span>
+            </h1>
         </header>
 
         <section class="paper-identite">

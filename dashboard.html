@@ -78,6 +78,10 @@
                 <div class="card-title">Évolution de la FE</div>
                 <div class="chart-wrap"><canvas id="chart-fe-trend"></canvas></div>
             </div>
+            <div class="card card--section">
+                <div class="card-title">Répartition par Sexe</div>
+                <div class="chart-wrap" style="display:flex; justify-content:center; max-height:250px;"><canvas id="chart-sexe"></canvas></div>
+            </div>
         </div>
 
         <!-- Dernières fiches -->
@@ -187,6 +191,35 @@ $.get(API + '/stats.php')
             });
         } else {
             feCanvas.parentElement.innerHTML = '<div class="table-empty">Aucune valeur de FE disponible</div>';
+        }
+    }
+
+    const sexeData = d.par_sexe || [];
+    const sexeCanvas = document.getElementById('chart-sexe');
+    if (sexeCanvas) {
+        if (sexeData.length) {
+            const labels = sexeData.map(item => item.sexe === 'M' ? 'Hommes' : (item.sexe === 'F' ? 'Femmes' : 'Non précisé'));
+            const data = sexeData.map(item => item.nb);
+            new Chart(sexeCanvas, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#3B82F6', '#EC4899', '#9CA3AF'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'right' } 
+                    }
+                }
+            });
+        } else {
+            sexeCanvas.parentElement.innerHTML = '<div class="table-empty">Aucune donnée de sexe</div>';
         }
     }
 })
