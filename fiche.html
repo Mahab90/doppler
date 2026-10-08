@@ -34,7 +34,7 @@
         <div class="card card--section">
             <div class="card-title">Informations patient & examen</div>
             
-            <div class="form-group" style="position:relative;">
+            <div class="form-group" id="patient-search-group" style="position:relative;">
                 <label class="form-label">Rechercher un patient existant</label>
                 <div style="display:flex; gap:10px;">
                     <input type="text" id="patient_search" class="form-control" autocomplete="off" placeholder="Nom, prénom, n° dossier...">
@@ -318,20 +318,21 @@ $(document).on('click', function(e) {
 });
 
 function selectPatient(p) {
+    const lockPatientDetails = !editId;
     $('#patient_id').val(p.id);
     $('#patient_search').val(p.nom + ' ' + p.prenom);
     $('#patient_autocomplete').hide();
     
-    $('[name="patient_nom"]').val(p.nom).prop('readonly', true);
-    $('[name="patient_prenom"]').val(p.prenom).prop('readonly', true);
-    $('[name="sexe"]').val(p.sexe).css('pointer-events', 'none');
-    $('[name="age"]').val(p.age).prop('readonly', true);
-    $('[name="num_dossier"]').val(p.num_dossier).prop('readonly', true);
-    $('[name="telephone"]').val(p.telephone).prop('readonly', true);
-    $('[name="poids"]').val(p.poids).prop('readonly', true);
-    $('[name="taille"]').val(p.taille).prop('readonly', true);
-    $('#patient_statut').val(p.service ? 'hospitalise' : 'externe').css('pointer-events', 'none');
-    $('[name="service"]').val(p.service).prop('readonly', true);
+    $('[name="patient_nom"]').val(p.nom).prop('readonly', lockPatientDetails);
+    $('[name="patient_prenom"]').val(p.prenom).prop('readonly', lockPatientDetails);
+    $('[name="sexe"]').val(p.sexe).css('pointer-events', lockPatientDetails ? 'none' : 'auto');
+    $('[name="age"]').val(p.age).prop('readonly', lockPatientDetails);
+    $('[name="num_dossier"]').val(p.num_dossier).prop('readonly', lockPatientDetails);
+    $('[name="telephone"]').val(p.telephone).prop('readonly', lockPatientDetails);
+    $('[name="poids"]').val(p.poids).prop('readonly', lockPatientDetails);
+    $('[name="taille"]').val(p.taille).prop('readonly', lockPatientDetails);
+    $('#patient_statut').val(p.service ? 'hospitalise' : 'externe').css('pointer-events', lockPatientDetails ? 'none' : 'auto');
+    $('[name="service"]').val(p.service).prop('readonly', lockPatientDetails);
     syncPatientStatut();
     
     toast('Patient sélectionné', 'success');
@@ -353,6 +354,7 @@ function clearPatientSelection() {
 
 if (editId) {
     $('#page-title').text('Modifier la fiche');
+    $('#patient-search-group').hide();
     $.get(API + '/fiches.php?id=' + editId)
         .done(function(d) {
             if (d.patient_id) selectPatient({
@@ -376,7 +378,7 @@ if (editId) {
             ECHO_FIELDS.forEach(f => $('[name="'+f+'"]').val(d[f]));
         })
         .fail(function(xhr) {
-            toast(apiErrorMessage(xhr, 'Fiche introuvable'), 'error');
+            showOperationResult('Chargement impossible', apiErrorMessage(xhr, 'Fiche introuvable'), 'error');
         });
 } else {
     $('[name="date_examen"]').val(new Date().toISOString().split('T')[0]);
@@ -399,11 +401,12 @@ $('#form-fiche').on('submit', function(e) {
         contentType: 'application/json',
         data: JSON.stringify(data),
         success: function() {
-            toast('Fiche enregistrée en base de données', 'success');
-            setTimeout(() => window.location.href = 'liste.html?saved=1', 800);
+            showOperationResult(editId ? 'Fiche modifiée' : 'Fiche créée', editId ? 'Les modifications de la fiche sont enregistrées.' : 'La fiche a été créée.', 'success', function() {
+                window.location.href = 'liste.html';
+            });
         },
         error: function(xhr) {
-            toast(apiErrorMessage(xhr, 'Erreur lors de l\'enregistrement'), 'error');
+            showOperationResult('Enregistrement impossible', apiErrorMessage(xhr, 'Erreur lors de l\'enregistrement'), 'error');
             $('#btn-submit').prop('disabled', false).text('Enregistrer en base');
         }
     });

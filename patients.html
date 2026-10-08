@@ -25,7 +25,7 @@
             <h1>Patients</h1>
             <div>
                 <a href="fiche.html" class="btn btn-ghost"><i class="fa-solid fa-file-medical"></i> Nouvelle fiche</a>
-                <button class="btn btn-primary" onclick="openPatientModal()"><i class="fa-solid fa-plus"></i> Nouveau Patient</button>
+                <button class="btn btn-primary" id="new-patient-btn" onclick="openPatientModal()"><i class="fa-solid fa-plus"></i> Nouveau Patient</button>
             </div>
         </div>
 
@@ -54,10 +54,11 @@
                             <th>Téléphone</th>
                             <th>Service</th>
                             <th>Fiches</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="patients-table">
-                        <tr><td colspan="7" class="table-empty">Chargement…</td></tr>
+                        <tr><td colspan="8" class="table-empty">Chargement…</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -116,6 +117,7 @@
 <script src="assets/js/app.js"></script>
 <script>
 if (!requireLogin()) { /* redirect */ }
+if (!canUser('manage_patients')) $('#new-patient-btn').hide();
 
 let currentPage = 1;
 let searchTimer = null;
@@ -130,14 +132,14 @@ function loadPatients(page = 1) {
             renderPatientPagination(response?.total || 0, page);
         })
         .fail(function(xhr) {
-            $('#patients-table').html('<tr><td colspan="7" class="table-empty">' + escHtml(apiErrorMessage(xhr, 'Erreur de chargement')) + '</td></tr>');
+            $('#patients-table').html('<tr><td colspan="8" class="table-empty">' + escHtml(apiErrorMessage(xhr, 'Erreur de chargement')) + '</td></tr>');
             toast(apiErrorMessage(xhr, 'Impossible de charger les patients'), 'error');
         });
 }
 
 function renderPatients(data) {
     if (!data.length) {
-        $('#patients-table').html('<tr><td colspan="7" class="table-empty">Aucun patient trouvé</td></tr>');
+        $('#patients-table').html('<tr><td colspan="8" class="table-empty">Aucun patient trouvé</td></tr>');
         return;
     }
     const rows = data.map(patient => `
@@ -149,6 +151,7 @@ function renderPatients(data) {
             <td>${patient.telephone ? escHtml(patient.telephone) : '<span class="text-muted">—</span>'}</td>
             <td>${patient.service ? escHtml(patient.service) : '<span class="text-muted">—</span>'}</td>
             <td>${patient.fiches_count}</td>
+            <td>${canUser('manage_patients') ? `<button class="btn btn-danger btn-sm" data-delete-patient="${patient.id}" title="Supprimer le patient et ses fiches"><i class="fa-solid fa-trash"></i></button>` : '—'}</td>
         </tr>`).join('');
     $('#patients-table').html(rows);
 }
@@ -168,6 +171,25 @@ $('#patient-query').on('input', function() {
     searchTimer = setTimeout(() => loadPatients(1), 250);
 });
 
+$(document).on('click', '[data-delete-patient]', function() {
+    const id = $(this).data('delete-patient');
+    confirm('Supprimer ce patient ainsi que toutes ses fiches ? Cette action est irréversible.', function() {
+        $.ajax({
+            url: API + '/patients.php?id=' + id,
+            method: 'DELETE',
+            contentType: 'application/json',
+            data: JSON.stringify(getActorPayload()),
+            success: function() {
+                showOperationResult('Patient supprimé', 'Le patient et toutes ses fiches associées ont été supprimés.', 'success');
+                loadPatients(currentPage);
+            },
+            error: function(xhr) {
+                showOperationResult('Suppression impossible', apiErrorMessage(xhr, 'Erreur lors de la suppression'), 'error');
+            }
+        });
+    });
+});
+
 loadPatients();
 
 function openPatientModal() {
@@ -181,21 +203,19 @@ function closePatientModal() {
 $('#form-patient').on('submit', function(e) {
     e.preventDefault();
     const data = getFormData($(this));
-    data.actor_id = getAuth().user.id;
-    data.actor_name = getAuth().user.nom;
-    data.actor_role = getAuth().user.role_name;
+    Object.assign(data, getActorPayload());
 
     const btn = $(this).find('button[type="submit"]');
     btn.prop('disabled', true).html('<i class="fa-solid fa-spinner fa-spin"></i> Enregistrement...');
 
     $.post(API + '/patients.php', JSON.stringify(data))
         .done(function(res) {
-            toast('Patient créé avec succès', 'success');
+            showOperationResult('Patient créé', 'Le patient a été enregistré.', 'success');
             closePatientModal();
             loadPatients(1);
         })
         .fail(function(xhr) {
-            toast(apiErrorMessage(xhr, 'Erreur lors de la création'), 'error');
+            showOperationResult('Création impossible', apiErrorMessage(xhr, 'Erreur lors de la création'), 'error');
         })
         .always(function() {
             btn.prop('disabled', false).html('<i class="fa-solid fa-save"></i> Enregistrer');

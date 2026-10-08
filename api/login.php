@@ -16,7 +16,7 @@ if ($username === '' || $password === '') {
     json_response(['error' => 'Nom d’utilisateur et mot de passe requis'], 400);
 }
 
-$stmt = $pdo->prepare("SELECT u.id, u.username, u.nom, u.prenom, u.password_hash, r.nom AS role_name, r.can_manage_users, r.can_manage_fiches, r.can_view_logs, r.can_create_fiches, r.can_update_fiches, r.can_delete_fiches, r.can_view_fiches FROM users u LEFT JOIN roles r ON r.id = u.role_id WHERE u.username = :username AND u.is_active = TRUE LIMIT 1");
+$stmt = $pdo->prepare("SELECT u.id, u.username, u.nom, u.prenom, u.password_hash, r.nom AS role_name, r.can_manage_users, r.can_manage_fiches, r.can_view_logs, r.can_create_fiches, r.can_update_fiches, r.can_delete_fiches, r.can_view_fiches, r.can_manage_patients FROM users u LEFT JOIN roles r ON r.id = u.role_id WHERE u.username = :username AND u.is_active = TRUE LIMIT 1");
 $stmt->execute([':username' => strtolower($username)]);
 $user = $stmt->fetch();
 
@@ -38,5 +38,6 @@ json_response([
         'can_update_fiches' => (bool)$user['can_update_fiches'],
         'can_delete_fiches' => (bool)$user['can_delete_fiches'],
         'can_view_fiches' => (bool)$user['can_view_fiches'],
+        'can_manage_patients' => (bool)$user['can_manage_patients'],
     ]
 ]);

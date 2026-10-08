@@ -21,6 +21,39 @@ function confirm(msg, cb) {
     $('#confirm-ok').on('click', () => { $('#confirm-modal').remove(); cb(); });
 }
 
+function showOperationResult(title, message, state = 'success', onClose) {
+    $('#operation-result-modal').remove();
+
+    const success = state === 'success';
+    const $overlay = $('<div>', {
+        id: 'operation-result-modal',
+        class: 'modal-overlay operation-result-overlay',
+        role: 'dialog',
+        'aria-modal': 'true',
+        'aria-labelledby': 'operation-result-title'
+    }).css('display', 'flex');
+    const $dialog = $('<div>', { class: 'modal operation-result' });
+    const $state = $('<div>', {
+        class: 'operation-result__state ' + (success ? 'operation-result__state--success' : 'operation-result__state--error')
+    });
+    $state.append($('<i>', { class: 'fa-solid ' + (success ? 'fa-circle-check' : 'fa-circle-exclamation'), 'aria-hidden': 'true' }));
+    $state.append($('<span>', { id: 'operation-result-title' }).text(title));
+    $dialog.append($state, $('<p>', { class: 'operation-result__message' }).text(message));
+
+    const $close = $('<button>', { type: 'button', class: 'btn btn-primary', text: 'Fermer' });
+    const close = () => {
+        $overlay.remove();
+        if (typeof onClose === 'function') onClose();
+    };
+    $close.on('click', close);
+    $dialog.append($('<div>', { class: 'modal-actions' }).append($close));
+    $overlay.append($dialog).appendTo('body');
+    $overlay.on('click', event => {
+        if (event.target === $overlay[0]) close();
+    });
+    $close.trigger('focus');
+}
+
 function badgeFE(fe) {
     const value = Number(fe);
     if (Number.isNaN(value)) return '<span class="badge">—</span>';
@@ -79,6 +112,7 @@ function canUser(action) {
         update: 'can_update_fiches',
         delete: 'can_delete_fiches',
         manage_users: 'can_manage_users',
+        manage_patients: 'can_manage_patients',
         view_logs: 'can_view_logs'
     };
     return !!permissions[map[action]];
@@ -209,10 +243,10 @@ function openProfileModal() {
                 sessionStorage.setItem('echo_user', JSON.stringify(updatedUser));
                 syncSessionActor();
                 $('#profile-modal').remove();
-                toast('Profil mis à jour', 'success');
+                showOperationResult('Profil modifié', 'Les modifications du profil sont enregistrées.', 'success');
             },
             error: function(xhr) {
-                alert(apiErrorMessage(xhr, 'Erreur lors de la mise à jour du profil'));
+                showOperationResult('Modification impossible', apiErrorMessage(xhr, 'Erreur lors de la mise à jour du profil'), 'error');
             }
         });
     });
@@ -274,9 +308,7 @@ function escHtml(value) {
 }
 
 function setupMobileNav() {
-    const path = window.location.pathname;
-    const isTestDir = path.includes('/tests/');
-    const prefix = isTestDir ? '../' : '';
+    const filename = window.location.pathname.split('/').pop();
 
     // Ne pas insérer si la structure mobile existe déjà
     if ($('#mobile-nav-drawer').length) return;
@@ -297,12 +329,11 @@ function setupMobileNav() {
             <div class="drawer-user-info" style="padding: 12px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; font-size: 12px; color: var(--text-muted);">
                 <i class="fa-solid fa-user"></i> Connecté : <strong style="color: var(--text); display: block;" class="drawer-username-display">...</strong>
             </div>
-            <a href="${prefix}dashboard.html" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Tableau de bord</a>
-            <a href="${prefix}liste.html" class="nav-item"><i class="fa-solid fa-folder-open"></i> Liste des fiches</a>
-            <a href="${prefix}patients.html" class="nav-item"><i class="fa-solid fa-user-injured"></i> Patients</a>
-            <a href="${prefix}fiche.html" class="nav-item"><i class="fa-solid fa-file-medical"></i> Nouvelle fiche</a>
-            <a href="${prefix}users.html" class="nav-item"><i class="fa-solid fa-users"></i> Utilisateurs</a>
-            <a href="${prefix}tests/index.html" class="nav-item"><i class="fa-solid fa-vial"></i> Tests</a>
+            <a href="dashboard.html" class="nav-item"><i class="fa-solid fa-chart-pie"></i> Tableau de bord</a>
+            <a href="liste.html" class="nav-item"><i class="fa-solid fa-folder-open"></i> Liste des fiches</a>
+            <a href="patients.html" class="nav-item"><i class="fa-solid fa-user-injured"></i> Patients</a>
+            <a href="fiche.html" class="nav-item"><i class="fa-solid fa-file-medical"></i> Nouvelle fiche</a>
+            <a href="users.html" class="nav-item"><i class="fa-solid fa-users"></i> Utilisateurs</a>
             
             <div style="margin-top: auto; border-top: 1px solid var(--border); padding-top: 12px;">
                 <a href="#" id="mobile-profile-btn" class="nav-item"><i class="fa-solid fa-user-pen"></i> Modifier mon profil</a>
@@ -318,7 +349,6 @@ function setupMobileNav() {
         drawer.find('.drawer-username-display').text(getUserDisplayName(user) + ' · ' + getUserRole(user).toUpperCase());
     }
 
-    const filename = path.split('/').pop();
     drawer.find('.nav-item').each(function() {
         const href = $(this).attr('href');
         if (href && (href === filename || href.endsWith(filename))) {

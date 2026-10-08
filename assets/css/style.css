@@ -427,11 +427,13 @@ select.form-control { cursor: pointer; appearance: none; background-image: url("
     box-shadow: var(--shadow-lg); min-height: 1000px; border-radius: 4px;
 }
 .report-loading { text-align: center; color: var(--text-muted); padding: 80px; font-size: 16px; font-weight: 500; }
-.paper-head { text-align: center; margin-bottom: 32px; border-bottom: 2px solid #000; padding-bottom: 20px; position: relative; }
-.paper-head h1 { font-size: 22px; font-weight: 800; margin-top: 16px; letter-spacing: .08em; text-transform: uppercase; color: #000; }
-.paper-institution { font-size: 11px; line-height: 1.6; color: #111; font-weight: 600; }
+.paper-head { margin-bottom: 32px; border-bottom: 2px solid #000; padding-bottom: 20px; }
+.paper-head-top { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; align-items: start; min-height: 64px; }
+.paper-head h1 { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 22px; font-weight: 800; margin: 10px 0 0; letter-spacing: .08em; text-transform: uppercase; color: #000; }
+.paper-number { flex: none; font-size: 14px; font-weight: 400; color: #555; letter-spacing: 0; text-transform: none; }
+.paper-institution { text-align: center; font-size: 11px; line-height: 1.6; color: #111; font-weight: 600; }
 .exam-date { margin-top: 10px; font-weight: 800; font-size: 13px; color: #000; }
-.hospital-stamp { position: absolute; left: 0; top: 0; }
+.hospital-stamp { display: flex; justify-content: flex-start; }
 .stamp-ring {
     width: 80px; height: 80px; border: 2.5px solid #111; border-radius: 50%;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -455,6 +457,34 @@ select.form-control { cursor: pointer; appearance: none; background-image: url("
 .paper-conclusion h2 { border: none; padding: 0; margin-bottom: 8px; color: #000; }
 .paper-conclusion ul { list-style: disc; padding-left: 24px; }
 .paper-signature { margin-top: 48px; text-align: right; font-size: 15px; font-weight: 700; color: #000; }
+
+#report-sheet.pdf-export {
+    width: 190mm; max-width: none; min-height: 0; margin: 0; padding: 0;
+    box-sizing: border-box; box-shadow: none; border-radius: 0;
+}
+#report-sheet.pdf-export .paper-head { margin-bottom: 10px; padding-bottom: 8px; }
+#report-sheet.pdf-export .paper-head-top { grid-template-columns: 60px minmax(0, 1fr) 60px; min-height: 58px; }
+#report-sheet.pdf-export .paper-head h1 { margin-top: 6px; font-size: 17px; }
+#report-sheet.pdf-export .paper-number { font-size: 11px; }
+#report-sheet.pdf-export .stamp-logo { width: 55px; }
+#report-sheet.pdf-export .stamp-ring { width: 55px; height: 55px; }
+#report-sheet.pdf-export .paper-identite { margin-bottom: 7px; padding: 6px; font-size: 10px; }
+#report-sheet.pdf-export .identity-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 10px; }
+#report-sheet.pdf-export .identity-item--full { grid-column: auto; }
+#report-sheet.pdf-export .paper-measures { table-layout: fixed; font-size: 8px; line-height: 1.15; margin-bottom: 7px; border: 1.5px solid #111; }
+#report-sheet.pdf-export .paper-measures th,
+#report-sheet.pdf-export .paper-measures td { padding: 3px 2px; border: 1px solid #111; overflow-wrap: anywhere; }
+#report-sheet.pdf-export .paper-measures th:first-child,
+#report-sheet.pdf-export .paper-measures td:first-child { width: 14%; }
+#report-sheet.pdf-export .paper-measures th:nth-child(2),
+#report-sheet.pdf-export .paper-measures td:nth-child(2) { width: 11%; }
+#report-sheet.pdf-export .paper-measures tbody tr:last-child td { border-bottom: 1.5px solid #111 !important; }
+#report-sheet.pdf-export .paper-section { margin-bottom: 5px; font-size: 9px; line-height: 1.2; break-inside: avoid; }
+#report-sheet.pdf-export .paper-section h2 { margin-bottom: 2px; padding-bottom: 1px; font-size: 10px; }
+#report-sheet.pdf-export .paper-section ul { padding-left: 13px; margin: 2px 0; }
+#report-sheet.pdf-export .paper-section li { margin-bottom: 0; }
+#report-sheet.pdf-export .paper-conclusion { padding: 5px; }
+#report-sheet.pdf-export .paper-signature { margin-top: 6px; font-size: 10px; }
 
 /* ─── Tests page ─── */
 .test-page { max-width: 960px; margin: 40px auto; padding: 0 20px; }
@@ -572,13 +602,43 @@ select.form-control { cursor: pointer; appearance: none; background-image: url("
 }
 
 @media print {
+    @page { size: A4 portrait; margin: 8mm; }
     .sidebar, .no-print, .header-actions, .report-actions, .btn, .mobile-header, .mobile-nav-drawer { display: none !important; }
     .main, .report-body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
-    .paper-sheet { box-shadow: none; max-width: 100%; padding: 0; }
+    .paper-sheet { box-shadow: none; max-width: none; min-height: 0; padding: 0; border-radius: 0; }
+    .paper-head { margin-bottom: 10px; padding-bottom: 8px; }
+    .paper-head-top { grid-template-columns: 60px minmax(0, 1fr) 60px; min-height: 58px; }
+    .paper-head h1 { margin-top: 6px; font-size: 17px; }
+    .paper-number { font-size: 11px; }
+    .stamp-logo { width: 55px; }
+    .stamp-ring { width: 55px; height: 55px; }
+    .paper-identite { margin-bottom: 7px; padding: 6px; font-size: 10px; }
+    .identity-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 10px; }
+    .identity-item--full { grid-column: auto; }
+    .paper-measures { table-layout: fixed; font-size: 8px; line-height: 1.15; margin-bottom: 7px; border: 1.5px solid #111; }
+    .paper-measures th, .paper-measures td { padding: 3px 2px; border: 1px solid #111; overflow-wrap: anywhere; }
+    .paper-measures th:first-child, .paper-measures td:first-child { width: 14%; }
+    .paper-measures th:nth-child(2), .paper-measures td:nth-child(2) { width: 11%; }
+    .paper-measures tbody tr:last-child td { border-bottom: 1.5px solid #111 !important; }
+    .paper-section { margin-bottom: 5px; font-size: 9px; line-height: 1.2; }
+    .paper-section h2 { margin-bottom: 2px; padding-bottom: 1px; font-size: 10px; }
+    .paper-section ul { padding-left: 13px; margin: 2px 0; }
+    .paper-section li { margin-bottom: 0; }
+    .paper-conclusion { padding: 5px; }
+    .paper-signature { margin-top: 6px; font-size: 10px; }
+    .paper-head, .paper-identite, .paper-measures, .paper-section, .paper-signature { break-inside: avoid; }
     .detail-grid { grid-template-columns: 1fr 1fr; }
     .card { break-inside: avoid; box-shadow: none; border: 1.5px solid #000; }
 }
 .stamp-logo {
-    width: 80px;   /* à ajuster selon la mise en page */
+    width: 55px;
     height: auto;
 }
+
+.operation-result-overlay { z-index: 5000; }
+.operation-result { max-width: 440px; }
+.operation-result__state { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: 18px; font-weight: 700; }
+.operation-result__state i { font-size: 24px; }
+.operation-result__state--success { color: #15803D; }
+.operation-result__state--error { color: #B91C1C; }
+.operation-result__message { margin: 0; color: var(--text-muted); line-height: 1.5; overflow-wrap: anywhere; }

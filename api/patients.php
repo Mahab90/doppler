@@ -3,6 +3,7 @@ require_once __DIR__ . '/../config/db.php';
 
 $pdo = getDB();
 $method = $_SERVER['REQUEST_METHOD'];
+$id = $_GET['id'] ?? null;
 
 if ($method === 'GET') {
     $page = max(1, (int)($_GET['page'] ?? 1));
@@ -45,13 +46,9 @@ if ($method === 'GET') {
 
 if ($method === 'POST') {
     $d = get_input();
-    
-    // Authorization check
     $actor = getActorInfo($d);
-    // (Assuming any user who can view can create patients, or we use a basic check.
-    // If not specified in roles, we just allow authenticated users.
-    if (!isset($actor['actor_id'])) {
-        json_response(['error' => 'Non autorisé'], 401);
+    if (!canManagePatients($pdo, $actor['actor_role'])) {
+        json_response(['error' => 'Accès refusé pour la gestion des patients'], 403);
     }
 
     if (empty($d['patient_nom'])) {
@@ -76,8 +73,30 @@ if ($method === 'POST') {
     ]);
     $patient_id = (int)$stmt->fetchColumn();
 
-    // Log the action
-    logAction($pdo, $actor['actor_name'] ?? 'System', $actor['actor_role'] ?? '', 'CREATE_PATIENT', "Création du patient ID $patient_id");
+    logActivity($pdo, $actor['actor_name'], $actor['actor_role'], 'Création patient', 'Patient #' . $patient_id);
 
     json_response(['success' => true, 'id' => $patient_id, 'message' => 'Patient créé avec succès']);
 }
+
+if ($method === 'DELETE') {
+    if (!$id) {
+        json_response(['error' => 'ID requis'], 400);
+    }
+
+    $d = get_input();
+    $actor = getActorInfo($d);
+    if (!canManagePatients($pdo, $actor['actor_role'])) {
+        json_response(['error' => 'Accès refusé pour la gestion des patients'], 403);
+    }
+
+    $stmt = $pdo->prepare('DELETE FROM patients WHERE id = ?');
+    $stmt->execute([(int)$id]);
+    if ($stmt->rowCount() === 0) {
+        json_response(['error' => 'Patient introuvable'], 404);
+    }
+
+    logActivity($pdo, $actor['actor_name'], $actor['actor_role'], 'Suppression patient', 'Patient #' . (int)$id . ' et fiches associées');
+    json_response(['success' => true, 'message' => 'Patient et fiches associées supprimés']);
+}
+
+json_response(['error' => 'Méthode non autorisée'], 405);

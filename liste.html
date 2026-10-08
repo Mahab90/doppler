@@ -199,11 +199,11 @@ function deleteFiche(id) {
             contentType: 'application/json',
             data: JSON.stringify(getActorPayload()),
             success: function() {
-                toast('Fiche supprimée', 'success');
+                showOperationResult('Fiche supprimée', 'La fiche a été supprimée.', 'success');
                 searchMode ? doSearch(currentPage) : loadList(currentPage);
             },
             error: function(xhr) {
-                toast(apiErrorMessage(xhr, 'Erreur lors de la suppression'), 'error');
+                showOperationResult('Suppression impossible', apiErrorMessage(xhr, 'Erreur lors de la suppression'), 'error');
             }
         });
     });

@@ -84,6 +84,12 @@ if ($method === 'PUT') {
         json_response(['error' => 'Accès refusé'], 403);
     }
 
+    $exists = $pdo->prepare('SELECT 1 FROM users WHERE id = ?');
+    $exists->execute([(int)$id]);
+    if (!$exists->fetchColumn()) {
+        json_response(['error' => 'Utilisateur introuvable'], 404);
+    }
+
     $username = strtolower(trim((string)($d['username'] ?? '')));
     $nom = strtoupper(trim((string)($d['nom'] ?? '')));
     $prenom = trim((string)($d['prenom'] ?? ''));
@@ -138,6 +144,11 @@ if ($method === 'DELETE') {
     $actor = getActorInfo($d);
     if (!isAdminRole($actor['actor_role'])) {
         json_response(['error' => 'Accès refusé'], 403);
+    }
+    $exists = $pdo->prepare('SELECT 1 FROM users WHERE id = ?');
+    $exists->execute([(int)$id]);
+    if (!$exists->fetchColumn()) {
+        json_response(['error' => 'Utilisateur introuvable'], 404);
     }
     $pdo->prepare('DELETE FROM users WHERE id = ?')->execute([(int)$id]);
     logActivity($pdo, $actor['actor_name'], $actor['actor_role'], 'Suppression utilisateur', 'Utilisateur #' . $id);

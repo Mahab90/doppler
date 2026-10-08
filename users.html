@@ -81,6 +81,13 @@
                             <option value="0">Non</option>
                         </select>
                     </div>
+                    <div class="form-group">
+                        <label class="form-label">Gérer les patients</label>
+                        <select id="can-manage-patients" class="form-control">
+                            <option value="1">Oui</option>
+                            <option value="0">Non</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="form-actions" style="margin-top:16px">
                     <button type="button" class="btn btn-ghost" id="cancel-role">Annuler</button>
@@ -183,7 +190,7 @@ function getActorPayloadForAdmin() {
 }
 
 function loadRoles() {
-    $.get(API + '/roles.php', getActorPayloadForAdmin())
+    return $.get(API + '/roles.php', getActorPayloadForAdmin())
         .done(function(data) {
             renderRoles(data);
             const options = (data || []).map(r => `<option value="${r.id}">${escHtml(r.nom)}</option>`).join('');
@@ -199,7 +206,7 @@ function renderRoles(list) {
         <tr>
             <td>${r.nom}</td>
             <td>${r.description || '—'}</td>
-            <td>${[(r.can_manage_users ? 'Utilisateurs' : ''), (r.can_view_logs ? 'Logs' : ''), (r.can_create_fiches ? 'Créer fiches' : ''), (r.can_update_fiches ? 'Modifier fiches' : ''), (r.can_delete_fiches ? 'Supprimer fiches' : '')].filter(Boolean).join(', ') || '—'}</td>
+            <td>${[(r.can_manage_users ? 'Utilisateurs' : ''), (r.can_view_logs ? 'Logs' : ''), (r.can_create_fiches ? 'Créer fiches' : ''), (r.can_update_fiches ? 'Modifier fiches' : ''), (r.can_delete_fiches ? 'Supprimer fiches' : ''), (r.can_manage_patients || r.nom === 'admin' ? 'Gérer patients' : '')].filter(Boolean).join(', ') || '—'}</td>
             <td><div class="action-group"><button class="btn btn-ghost btn-sm" data-edit-role="${r.id}">Modifier</button><button class="btn btn-danger btn-sm" data-delete-role="${r.id}">Supprimer</button></div></td>
         </tr>
     `).join(''));
@@ -254,13 +261,28 @@ $('#role-form').on('submit', function(e) {
         can_create_fiches: $('#can-create-fiches').val(),
         can_update_fiches: $('#can-update-fiches').val(),
         can_delete_fiches: $('#can-delete-fiches').val(),
+        can_manage_patients: $('#can-manage-patients').val(),
         can_manage_fiches: $('#can-create-fiches').val() === '1' || $('#can-update-fiches').val() === '1' || $('#can-delete-fiches').val() === '1' ? '1' : '0',
         can_view_fiches: '1',
         ...getActorPayloadForAdmin()
     };
     const method = id ? 'PUT' : 'POST';
     const url = API + '/roles.php' + (id ? '?id=' + id : '');
-    $.ajax({ url, method, contentType: 'application/json', data: JSON.stringify(payload), success: function() { resetRoleForm(); loadRoles(); loadLogs(); } });
+    const $button = $(this).find('[type="submit"]').prop('disabled', true);
+    $.ajax({ url, method, contentType: 'application/json', data: JSON.stringify(payload) })
+        .done(function() {
+            loadRoles().done(function() {
+                resetRoleForm();
+                loadLogs();
+                showOperationResult(id ? 'Rôle modifié' : 'Rôle créé', id ? 'Les modifications du rôle sont enregistrées.' : 'Le rôle a été créé.', 'success');
+            }).fail(function() {
+                showOperationResult('Rôle enregistré', 'La modification est enregistrée, mais la liste des rôles n’a pas pu être actualisée.', 'error');
+            });
+        })
+        .fail(function(xhr) {
+            showOperationResult(id ? 'Modification impossible' : 'Création impossible', apiErrorMessage(xhr, 'Erreur lors de l’enregistrement du rôle.'), 'error');
+        })
+        .always(function() { $button.prop('disabled', false); });
 });
 
 $('#user-form').on('submit', function(e) {
@@ -278,7 +300,18 @@ $('#user-form').on('submit', function(e) {
     };
     const method = id ? 'PUT' : 'POST';
     const url = API + '/users.php' + (id ? '?id=' + id : '');
-    $.ajax({ url, method, contentType: 'application/json', data: JSON.stringify(payload), success: function() { resetUserForm(); loadUsers(); loadLogs(); } });
+    const $button = $(this).find('[type="submit"]').prop('disabled', true);
+    $.ajax({ url, method, contentType: 'application/json', data: JSON.stringify(payload) })
+        .done(function() {
+            loadUsers();
+            resetUserForm();
+            loadLogs();
+            showOperationResult(id ? 'Utilisateur modifié' : 'Utilisateur créé', id ? 'Les modifications de l’utilisateur sont enregistrées.' : 'L’utilisateur a été créé.', 'success');
+        })
+        .fail(function(xhr) {
+            showOperationResult(id ? 'Modification impossible' : 'Création impossible', apiErrorMessage(xhr, 'Erreur lors de l’enregistrement de l’utilisateur.'), 'error');
+        })
+        .always(function() { $button.prop('disabled', false); });
 });
 
 function resetRoleForm() {
@@ -289,6 +322,7 @@ function resetRoleForm() {
     $('#can-create-fiches').val('1');
     $('#can-update-fiches').val('1');
     $('#can-delete-fiches').val('1');
+    $('#can-manage-patients').val('0');
 }
 
 function resetUserForm() {
@@ -311,14 +345,19 @@ $(document).on('click', '[data-edit-role]', function() {
         $('#can-create-fiches').val(r.can_create_fiches ? '1' : '0');
         $('#can-update-fiches').val(r.can_update_fiches ? '1' : '0');
         $('#can-delete-fiches').val(r.can_delete_fiches ? '1' : '0');
+        $('#can-manage-patients').val(r.can_manage_patients || r.nom === 'admin' ? '1' : '0');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }).fail(function(xhr) {
+        showOperationResult('Chargement impossible', apiErrorMessage(xhr, 'Impossible de charger le rôle.'), 'error');
     });
 });
 
 $(document).on('click', '[data-delete-role]', function() {
     const id = $(this).data('delete-role');
     if (!confirm('Supprimer ce rôle ?')) return;
-    $.ajax({ url: API + '/roles.php?id=' + id, method: 'DELETE', contentType: 'application/json', data: JSON.stringify(getActorPayloadForAdmin()), success: function() { loadRoles(); loadLogs(); }, error: function(xhr) { toast(apiErrorMessage(xhr, 'Erreur suppression rôle'), 'error'); } });
+    $.ajax({ url: API + '/roles.php?id=' + id, method: 'DELETE', contentType: 'application/json', data: JSON.stringify(getActorPayloadForAdmin()) })
+        .done(function() { loadRoles(); loadLogs(); showOperationResult('Rôle supprimé', 'Le rôle a été supprimé.', 'success'); })
+        .fail(function(xhr) { showOperationResult('Suppression impossible', apiErrorMessage(xhr, 'Erreur lors de la suppression du rôle.'), 'error'); });
 });
 
 $(document).on('click', '[data-edit-user]', function() {
@@ -333,13 +372,17 @@ $(document).on('click', '[data-edit-user]', function() {
         $('#user-role').val(r.role_id || '');
         $('#user-active').val(r.is_active ? '1' : '0');
         window.scrollTo({ top: 0, behavior: 'smooth' });
+    }).fail(function(xhr) {
+        showOperationResult('Chargement impossible', apiErrorMessage(xhr, 'Impossible de charger l’utilisateur.'), 'error');
     });
 });
 
 $(document).on('click', '[data-delete-user]', function() {
     const id = $(this).data('delete-user');
     if (!confirm('Supprimer cet utilisateur ?')) return;
-    $.ajax({ url: API + '/users.php?id=' + id, method: 'DELETE', contentType: 'application/json', data: JSON.stringify(getActorPayloadForAdmin()), success: function() { loadUsers(); loadLogs(); }, error: function(xhr) { toast(apiErrorMessage(xhr, 'Erreur suppression utilisateur'), 'error'); } });
+    $.ajax({ url: API + '/users.php?id=' + id, method: 'DELETE', contentType: 'application/json', data: JSON.stringify(getActorPayloadForAdmin()) })
+        .done(function() { loadUsers(); loadLogs(); showOperationResult('Utilisateur supprimé', 'L’utilisateur a été supprimé.', 'success'); })
+        .fail(function(xhr) { showOperationResult('Suppression impossible', apiErrorMessage(xhr, 'Erreur lors de la suppression de l’utilisateur.'), 'error'); });
 });
 
 resetRoleForm();

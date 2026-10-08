@@ -159,6 +159,7 @@ function downloadPDF() {
     const element = document.getElementById('report-sheet');
     const btn = document.querySelector('[onclick="downloadPDF()"]');
     const originalText = btn.innerHTML;
+    element.classList.add('pdf-export');
     btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Génération...';
     btn.disabled = true;
 
@@ -170,10 +171,13 @@ function downloadPDF() {
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     
-    html2pdf().set(opt).from(element).save().then(() => {
+    const restore = () => {
+        element.classList.remove('pdf-export');
         btn.innerHTML = originalText;
         btn.disabled = false;
-    });
+    };
+
+    html2pdf().set(opt).from(element).save().then(restore, restore);
 }
 
 function conclusionItems(d) {
@@ -209,17 +213,19 @@ function renderReport(d) {
 
     $('#report-sheet').html(`
         <header class="paper-head">
-            <div class="hospital-stamp" aria-hidden="true">
-    <img src="assets/img/logo.jpeg" alt="" class="stamp-logo">
-</div>
-            <div class="paper-institution">
-                <div>DIRECTION GENERALE DE LA SANTE PUBLIQUE</div>
-                <div>MATERNITE ISSAKA GAZOBY / E.P.A / NIAMEY</div>
-                <div class="exam-date">DATE DE L'EXAMEN : ${clean(examDate)}</div>
+            <div class="paper-head-top">
+                <div class="hospital-stamp" aria-hidden="true">
+                    <img src="assets/img/logo.jpeg" alt="" class="stamp-logo">
+                </div>
+                <div class="paper-institution">
+                    <div>MATERNITE ISSAKA GAZOBY / E.P.A / NIAMEY</div>
+                    <div class="exam-date">DATE DE L'EXAMEN : ${clean(examDate)}</div>
+                </div>
+                <div aria-hidden="true"></div>
             </div>
-            <h1 style="display:flex; justify-content:space-between; align-items:baseline;">
+            <h1>
                 <span>ECHO DOPPLER CARDIAQUE</span>
-                <span style="font-size: 14px; font-weight: normal; color: #555;">N° Fiche : ${d.id}</span>
+                <span class="paper-number">N° Fiche : ${d.id}</span>
             </h1>
         </header>
 
@@ -349,11 +355,12 @@ $('#confirm-delete').on('click', function() {
         contentType: 'application/json',
         data: JSON.stringify(getActorPayload()),
         success: function() {
-            toast('Fiche supprimée', 'success');
-            setTimeout(() => window.location.href = 'liste.html', 1200);
+            showOperationResult('Fiche supprimée', 'La fiche a été supprimée.', 'success', function() {
+                window.location.href = 'liste.html';
+            });
         },
         error: function(xhr) {
-            toast(apiErrorMessage(xhr, 'Erreur lors de la suppression'), 'error');
+            showOperationResult('Suppression impossible', apiErrorMessage(xhr, 'Erreur lors de la suppression'), 'error');
             $('#confirm-delete').prop('disabled', false);
             $('#delete-modal').hide();
         }
