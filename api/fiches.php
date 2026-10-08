@@ -11,7 +11,8 @@ if ($method === 'GET') {
         $stmt = $pdo->prepare("
             SELECT e.*, 
                    p.nom AS patient_nom, p.prenom AS patient_prenom,
-                   p.date_naissance, p.sexe, p.poids, p.taille, p.service,
+                   p.date_naissance, p.age, p.sexe, p.poids, p.taille,
+                   p.telephone, p.num_dossier, p.service,
                    m.nom AS medecin_nom, m.prenom AS medecin_prenom
             FROM echocardiographies e
             JOIN patients p ON p.id = e.patient_id
